@@ -7,7 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton<IMovieDataProvider, SampleMovieDataProvider>();
+builder.Services.Configure<TmdbOptions>(builder.Configuration.GetSection(TmdbOptions.SectionName));
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<IMovieDataProvider, TmdbMovieDataProvider>();
 
 var app = builder.Build();
 

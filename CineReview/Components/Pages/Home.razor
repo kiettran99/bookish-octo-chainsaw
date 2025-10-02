@@ -20,16 +20,16 @@ else
 			<div class="container-xl position-relative">
 				<div class="row align-items-center g-5 py-5">
 					<div class="col-lg-7">
-						<div class="d-flex align-items-center gap-3 mb-4">
-							<span class="badge bg-primary-subtle text-primary-emphasis px-3 py-2 rounded-pill">Phim nổi bật</span>
+						<div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+							<span class="badge chip chip--primary">Phim nổi bật</span>
 							<span class="text-secondary text-uppercase small fw-semibold">@_homeData.Featured.ReleaseDate.ToString("dd MMM yyyy")</span>
 						</div>
 						<h1 class="display-4 fw-bold mb-3 text-white">@_homeData.Featured.Title</h1>
 						<p class="lead text-light-emphasis mb-4">@_homeData.Featured.Tagline</p>
 						<p class="text-secondary-emphasis mb-4">@_homeData.Featured.Overview</p>
-						<div class="d-flex flex-wrap gap-3 mb-4">
-							<a class="btn btn-primary btn-lg rounded-pill" href="@($"/movies/{_homeData.Featured.Id}")">Khám phá chi tiết</a>
-							<a class="btn btn-outline-light btn-lg rounded-pill" href="#now-playing">Xem suất chiếu</a>
+						<div class="home-hero__actions d-flex flex-wrap gap-3 mb-4">
+							<a class="btn btn-primary btn-glow" href="@($"/movies/{_homeData.Featured.Id}")">Khám phá chi tiết</a>
+							<a class="btn btn-ghost" href="#now-playing">Xem suất chiếu</a>
 						</div>
 						<div class="home-hero__meta">
 							<div>
@@ -40,11 +40,11 @@ else
 								<span class="text-secondary">Trạng thái review</span>
 								@if (_homeData.Featured.RequiresTicketVerification)
 								{
-									<span class="fw-semibold text-warning">Cần xác thực vé</span>
+									<span class="badge chip chip--danger fw-semibold">Cần xác thực vé</span>
 								}
 								else
 								{
-									<span class="fw-semibold text-success">Tự do review</span>
+									<span class="badge chip chip--success fw-semibold">Tự do review</span>
 								}
 							</div>
 						</div>
@@ -55,7 +55,7 @@ else
 								<img src="@_homeData.Featured.PosterUrl" alt="Poster @_homeData.Featured.Title" class="w-100 h-100 object-fit-cover" loading="lazy" />
 							</div>
 							<div class="home-hero__poster-meta">
-								<span class="badge bg-dark-subtle text-secondary-emphasis">@string.Join(" • ", _homeData.Featured.Genres.Take(3))</span>
+								<span class="badge chip chip--muted">@string.Join(" • ", _homeData.Featured.Genres.Take(3))</span>
 								<span class="text-secondary">@FormatRelease(_homeData.Featured.ReleaseDate)</span>
 							</div>
 						</div>
@@ -71,7 +71,7 @@ else
 						<h2 class="h3 text-white mb-1">Đang chiếu nổi bật</h2>
 						<p class="text-secondary mb-0">Các suất chiếu đang mở bán, hãy xác thực vé để bật review.</p>
 					</div>
-					<a class="text-info" href="#showtimes">Xem tất cả</a>
+					<a class="btn btn-ghost btn-sm" href="#showtimes">Xem tất cả</a>
 				</div>
 				<div class="row g-4">
 					@foreach (var movie in _homeData.NowPlaying)
@@ -91,7 +91,7 @@ else
 						<h2 class="h3 text-white mb-1">Sắp công chiếu</h2>
 						<p class="text-secondary mb-0">Đặt nhắc lịch để không bỏ lỡ vé early-access.</p>
 					</div>
-					<a class="text-info" href="#alerts">Đăng ký nhắc lịch</a>
+					<a class="btn btn-ghost btn-sm" href="#alerts">Đăng ký nhắc lịch</a>
 				</div>
 				<div class="row g-4">
 					@foreach (var movie in _homeData.ComingSoon)
@@ -111,7 +111,7 @@ else
 						<h2 class="h3 text-white mb-1">Review mới nhất</h2>
 						<p class="text-secondary mb-0">Tổng hợp phản hồi từ cộng đồng CineReview.</p>
 					</div>
-					<a class="text-info" href="#communities">Vào cộng đồng</a>
+					<a class="btn btn-ghost btn-sm" href="#communities">Vào cộng đồng</a>
 				</div>
 				<div class="row g-4">
 					@foreach (var review in _homeData.LatestReviews)
@@ -123,7 +123,7 @@ else
 									<div class="flex-grow-1">
 										<div class="d-flex justify-content-between align-items-center mb-1">
 											<h3 class="h6 text-white mb-0">@review.Author</h3>
-											<span class="badge bg-warning-subtle text-warning-emphasis">@review.Rating/10</span>
+											<span class="badge chip chip--warning">@review.Rating/10</span>
 										</div>
 										<div class="text-secondary small mb-2">
 											<span>@review.ContextLabel</span>
@@ -134,7 +134,7 @@ else
 										<div class="d-flex align-items-center gap-2 small">
 											@if (review.IsTicketVerified)
 											{
-												<span class="badge bg-success-subtle text-success-emphasis">Đã xác thực vé</span>
+												<span class="badge chip chip--success">Đã xác thực vé</span>
 											}
 											@if (!string.IsNullOrWhiteSpace(review.Location))
 											{
@@ -157,7 +157,7 @@ else
 						<h2 class="h3 text-white mb-1">Bài viết & hướng dẫn</h2>
 						<p class="text-secondary mb-0">Tin tức, kinh nghiệm xác thực vé và mẹo review chất lượng.</p>
 					</div>
-					<a class="text-info" href="#">Xem thêm bài viết</a>
+					<a class="btn btn-ghost btn-sm" href="#">Xem thêm bài viết</a>
 				</div>
 				<div class="row g-4">
 					@foreach (var spotlight in _homeData.EditorialSpots)
@@ -170,7 +170,7 @@ else
 								<div class="p-4">
 									<h3 class="h5 text-white">@spotlight.Title</h3>
 									<p class="text-secondary mb-4">@spotlight.Description</p>
-									<a class="btn btn-outline-info btn-sm rounded-pill" href="@spotlight.ActionUrl">@spotlight.ActionLabel</a>
+									<a class="btn btn-ghost btn-sm" href="@spotlight.ActionUrl">@spotlight.ActionLabel</a>
 								</div>
 							</article>
 						</div>

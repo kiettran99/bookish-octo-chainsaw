@@ -4,6 +4,14 @@
     gap: 4rem;
 }
 
+.home-page p {
+    color: rgba(226, 232, 240, 0.82);
+}
+
+.home-page .lead {
+    color: rgba(241, 245, 249, 0.9);
+}
+
 .home-hero {
     border-radius: 0 0 3rem 3rem;
     padding: 6rem 0 4rem;
@@ -35,6 +43,19 @@
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
 }
 
+.home-hero__meta div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.home-hero__meta div > span:first-child::after {
+    content: ":";
+    margin-left: 0.1rem;
+    color: rgba(148, 163, 184, 0.7);
+}
+
 .home-hero__poster-card {
     max-width: 20rem;
     margin: 0 auto;
@@ -48,6 +69,7 @@
     justify-content: space-between;
     align-items: center;
     color: rgba(226, 232, 240, 0.8);
+    gap: 0.75rem;
 }
 
 .home-section {
@@ -62,8 +84,7 @@
 }
 
 .home-section .section-header a {
-    font-weight: 600;
-    text-decoration: none;
+    align-self: flex-start;
 }
 
 .home-section--tinted {
@@ -71,6 +92,10 @@
     padding-block: 4rem;
     border-radius: 3rem;
     margin-inline: 1rem;
+}
+
+.home-hero__actions .btn {
+    flex: 0 1 auto;
 }
 
 .review-card {
@@ -129,5 +154,28 @@
     .home-section--tinted {
         border-radius: 2rem;
         margin-inline: 0;
+    }
+
+    .home-hero .row {
+        text-align: center;
+    }
+
+    .home-hero__poster-card {
+        max-width: 16rem;
+    }
+
+    .home-hero__meta {
+        text-align: left;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .home-hero__poster-meta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .home-section {
+        padding-inline: 0.5rem;
     }
 }

@@ -40,15 +40,15 @@ else
                     </div>
                     <div class="col-md-9 col-lg-7">
                         <div class="d-flex align-items-center gap-3 mb-3">
-                            <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2">@_profile.Summary.ReleaseDate.ToString("dd MMM yyyy")</span>
-                            <span class="badge bg-dark-subtle text-secondary-emphasis rounded-pill px-3 py-2">@_profile.Certification</span>
+                            <span class="badge chip chip--primary">@_profile.Summary.ReleaseDate.ToString("dd MMM yyyy")</span>
+                            <span class="badge chip chip--muted">@_profile.Certification</span>
                         </div>
                         <h1 class="display-4 fw-bold text-white mb-3">@_profile.Summary.Title</h1>
                         <p class="lead text-light-emphasis mb-4">@_profile.Summary.Tagline</p>
                         <p class="text-secondary mb-4">@_profile.Summary.Overview</p>
-                        <div class="d-flex flex-wrap gap-3 mb-4">
-                            <a class="btn btn-primary btn-lg rounded-pill" href="#tickets">Mua vé ngay</a>
-                            <a class="btn btn-outline-light btn-lg rounded-pill" href="#reviews">Viết review</a>
+                        <div class="detail-hero__actions d-flex flex-wrap gap-3 mb-4">
+                            <a class="btn btn-primary btn-glow" href="#tickets">Mua vé ngay</a>
+                            <a class="btn btn-ghost" href="#reviews">Viết review</a>
                         </div>
                         <div class="detail-hero__meta">
                             <div>
@@ -67,11 +67,11 @@ else
                                 <span class="text-secondary">Chính sách review</span>
                                 @if (_profile.Summary.RequiresTicketVerification)
                                 {
-                                    <span class="fw-semibold text-warning">Cần xác thực vé</span>
+                                    <span class="badge chip chip--danger">Cần xác thực vé</span>
                                 }
                                 else
                                 {
-                                    <span class="fw-semibold text-success">Tự do review</span>
+                                    <span class="badge chip chip--success">Tự do review</span>
                                 }
                             </div>
                         </div>
@@ -176,7 +176,7 @@ else
             <div class="container-xl">
                 <div class="section-header">
                     <h2 class="h3 text-white mb-0">Review từ cộng đồng</h2>
-                    <a class="btn btn-outline-info btn-sm rounded-pill" href="#">Xem toàn bộ</a>
+                    <a class="btn btn-ghost btn-sm" href="#">Xem toàn bộ</a>
                 </div>
                 <div class="row g-4">
                     @if (_profile.Reviews.Any())
@@ -190,7 +190,7 @@ else
                                         <div class="flex-grow-1">
                                             <div class="d-flex justify-content-between align-items-center mb-1">
                                                 <h3 class="h6 text-white mb-0">@review.Author</h3>
-                                                <span class="badge bg-warning-subtle text-warning-emphasis">@review.Rating/10</span>
+                                                <span class="badge chip chip--warning">@review.Rating/10</span>
                                             </div>
                                             <div class="text-secondary small mb-2">
                                                 <span>@review.CreatedAt.ToString("dd/MM/yyyy")</span>
@@ -203,7 +203,7 @@ else
                                             <p class="text-secondary mb-2">@review.Excerpt</p>
                                             @if (review.IsTicketVerified)
                                             {
-                                                <span class="badge bg-success-subtle text-success-emphasis">Đã xác thực vé</span>
+                                                <span class="badge chip chip--success">Đã xác thực vé</span>
                                             }
                                         </div>
                                     </div>

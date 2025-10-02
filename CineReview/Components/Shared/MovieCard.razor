@@ -5,11 +5,11 @@
         <img src="@Movie.PosterUrl" alt="Poster @Movie.Title" class="w-100 h-100 object-fit-cover" loading="lazy" />
         @if (Movie.IsNowPlaying)
         {
-            <span class="badge bg-danger-subtle text-danger-emphasis fw-semibold movie-card__status">Đang chiếu</span>
+            <span class="badge chip chip--danger movie-card__status">Đang chiếu</span>
         }
         else if (!Movie.RequiresTicketVerification)
         {
-            <span class="badge bg-success-subtle text-success-emphasis fw-semibold movie-card__status">Mở review tự do</span>
+            <span class="badge chip chip--success movie-card__status">Mở review tự do</span>
         }
     </div>
     <div class="card-body d-flex flex-column">
@@ -22,11 +22,11 @@
         <div class="d-flex flex-wrap gap-1 mb-3">
             @foreach (var genre in Movie.Genres.Take(3))
             {
-                <span class="badge rounded-pill bg-dark-subtle text-secondary-emphasis">@genre</span>
+                <span class="badge chip chip--muted">@genre</span>
             }
         </div>
         <div class="mt-auto">
-            <a class="btn btn-outline-light btn-sm rounded-pill" href="@($"/movies/{Movie.Id}")">Xem chi tiết</a>
+            <a class="btn btn-ghost btn-sm" href="@($"/movies/{Movie.Id}")">Xem chi tiết</a>
         </div>
     </div>
 </div>
