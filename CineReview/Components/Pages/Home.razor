@@ -18,7 +18,49 @@ else
 			<div class="home-hero__backdrop" style="background-image: url('@_homeData.Featured.BackdropUrl');"></div>
 			<div class="home-hero__overlay"></div>
 			<div class="container-xl position-relative">
-				<div class="home-hero__layout">
+				<!-- Mobile-first layout: poster first, then copy -->
+				<div class="home-hero__layout-mobile d-md-none">
+					<!-- Poster trên cùng -->
+					<div class="home-hero__media d-flex flex-column align-items-center justify-content-center mb-3">
+						<div class="ratio ratio-2x3 rounded-4 overflow-hidden shadow-lg" style="min-width: 180px; max-width: 320px; min-height: 270px; background: #222;">
+							@if (!string.IsNullOrWhiteSpace(_homeData.Featured.PosterUrl))
+							{
+								<img src="@_homeData.Featured.PosterUrl" alt="Poster @_homeData.Featured.Title" class="w-100 h-100 object-fit-cover" loading="lazy" />
+							}
+							else
+							{
+								<img src="/images/no-poster.png" alt="Không có poster" class="w-100 h-100 object-fit-cover opacity-50" />
+							}
+						</div>
+					</div>
+					<!-- Tiêu đề phim nổi bật -->
+					<h1 class="home-hero__title fw-bold text-white mb-2 text-center">@_homeData.Featured.Title</h1>
+					<!-- Tagline -->
+					<p class="home-hero__tagline text-light-emphasis mb-2 text-center text-truncate-2">@_homeData.Featured.Tagline</p>
+					<!-- Meta: ngày, thể loại, điểm, trạng thái -->
+					<div class="home-hero__meta d-flex flex-wrap justify-content-center gap-2 mb-3">
+						<span class="badge chip chip--muted">@string.Join(" • ", _homeData.Featured.Genres.Take(3))</span>
+						<span class="text-secondary">@FormatRelease(_homeData.Featured.ReleaseDate)</span>
+						<span class="badge chip chip--info">@_homeData.Featured.CommunityScore.ToString("0.0")</span>
+						@if (_homeData.Featured.RequiresTicketVerification)
+						{
+							<span class="badge chip chip--danger fw-semibold">Cần xác thực vé</span>
+						}
+						else
+						{
+							<span class="badge chip chip--success fw-semibold">Tự do review</span>
+						}
+					</div>
+					<!-- Overview (mô tả dài, chỉ 1 lần) -->
+					<p class="home-hero__overview text-secondary-emphasis mb-4 text-center">@_homeData.Featured.Overview</p>
+					<!-- Nút hành động -->
+					<div class="home-hero__actions d-flex flex-column gap-3 mb-4 align-items-center">
+						<a class="btn btn-primary btn-glow w-100 py-3 fs-5 shadow-sm" style="border-radius: 1.5rem;" href="@($"/movies/{_homeData.Featured.Id}")">Khám phá chi tiết</a>
+						<a class="btn btn-ghost w-100 py-3 fs-5" style="border-radius: 1.5rem; border: 1.5px solid #444;" href="#now-playing">Xem suất chiếu</a>
+					</div>
+				</div>
+				<!-- Desktop/tablet layout -->
+				<div class="home-hero__layout d-none d-md-grid">
 					<div class="home-hero__copy">
 						<div class="home-hero__headline">
 							<span class="badge chip chip--primary">Phim nổi bật</span>
@@ -73,7 +115,18 @@ else
 					</div>
 					<a class="btn btn-ghost btn-sm" href="#showtimes">Xem tất cả</a>
 				</div>
-				<div class="row g-4">
+				<!-- Mobile: horizontal scroller -->
+				<div class="cards-scroller d-md-none" aria-label="Đang chiếu nổi bật">
+					@foreach (var movie in _homeData.NowPlaying)
+					{
+						<article class="cards-scroller__item">
+							<MovieCard Movie="movie" />
+						</article>
+					}
+				</div>
+
+				<!-- Desktop: grid -->
+				<div class="row g-4 d-none d-md-flex">
 					@foreach (var movie in _homeData.NowPlaying)
 					{
 						<div class="col-12 col-sm-6 col-lg-4 col-xl-3">
@@ -93,7 +146,18 @@ else
 					</div>
 					<a class="btn btn-ghost btn-sm" href="#alerts">Đăng ký nhắc lịch</a>
 				</div>
-				<div class="row g-4">
+				<!-- Mobile: horizontal scroller -->
+				<div class="cards-scroller d-md-none" aria-label="Sắp công chiếu">
+					@foreach (var movie in _homeData.ComingSoon)
+					{
+						<article class="cards-scroller__item">
+							<MovieCard Movie="movie" />
+						</article>
+					}
+				</div>
+
+				<!-- Desktop: grid -->
+				<div class="row g-4 d-none d-md-flex">
 					@foreach (var movie in _homeData.ComingSoon)
 					{
 						<div class="col-12 col-sm-6 col-lg-4 col-xl-3">
