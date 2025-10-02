@@ -1,0 +1,90 @@
+﻿@inject NavigationManager Navigation
+@inject IMovieDataProvider MovieDataProvider
+
+<nav class="navbar navbar-expand-lg navbar-dark main-nav shadow-sm">
+    <div class="container-xl py-3">
+        <a class="navbar-brand d-flex align-items-center" href="">
+            <span class="brand-icon me-2"></span>
+            <span class="fw-semibold">CineReview</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto mb-3 mb-lg-0">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Trang chủ</NavLink>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#showtimes" title="Tính năng đang phát triển">Lịch chiếu</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#communities" title="Tính năng đang phát triển">Cộng đồng</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#insights" title="Tin tức & hướng dẫn">Tin tức</a>
+                </li>
+            </ul>
+
+            <div class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center nav-actions">
+                <div class="input-group input-group-sm nav-search">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input class="form-control" type="search" placeholder="Tìm phim, diễn viên..." @bind="SearchTerm" @bind:event="oninput" />
+                    <button class="btn btn-outline-light" type="button" @onclick="PerformSearch">Tìm</button>
+                </div>
+                <a class="btn btn-primary btn-sm" href="#tickets">Đặt vé nhanh</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+@code {
+    private IReadOnlyList<MovieSummary> _searchIndex = Array.Empty<MovieSummary>();
+    private string _searchTerm = string.Empty;
+
+    private string SearchTerm
+    {
+        get => _searchTerm;
+        set => _searchTerm = value ?? string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var home = await MovieDataProvider.GetHomeAsync();
+        var lookup = new Dictionary<int, MovieSummary>();
+
+        foreach (var movie in home.NowPlaying.Concat(home.ComingSoon).Concat(home.TrendingThisWeek))
+        {
+            if (!lookup.ContainsKey(movie.Id))
+            {
+                lookup[movie.Id] = movie;
+            }
+        }
+
+        _searchIndex = lookup.Values
+            .OrderBy(summary => summary.Title)
+            .ToArray();
+    }
+
+    private void PerformSearch()
+    {
+        if (string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        var match = _searchIndex.FirstOrDefault(summary => summary.Title.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
+
+        if (match is not null)
+        {
+            Navigation.NavigateTo($"/movies/{match.Id}");
+        }
+        else
+        {
+            Navigation.NavigateTo($"/?search={Uri.EscapeDataString(SearchTerm)}");
+        }
+    }
+}
+

@@ -1,0 +1,58 @@
+:root {
+    color-scheme: dark;
+    --brand-primary: #0ea5e9;
+    --brand-secondary: #38bdf8;
+    --page-bg: #030712;
+    --page-text: #e2e8f0;
+}
+
+html, body {
+    min-height: 100%;
+    background: var(--page-bg);
+    color: var(--page-text);
+    font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+a {
+    color: var(--brand-secondary);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--brand-primary);
+    text-decoration: underline;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #22d3ee 100%);
+    border: none;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #14b8a6 100%);
+}
+
+.btn-outline-light {
+    border-color: rgba(226, 232, 240, 0.25);
+    color: var(--page-text);
+}
+
+.btn-outline-light:hover {
+    background-color: rgba(226, 232, 240, 0.1);
+}
+
+.object-fit-cover {
+    object-fit: cover;
+}
+
+.blazor-error-boundary {
+    background: linear-gradient(135deg, #991b1b, #7f1d1d);
+    color: #fee2e2;
+    border-radius: 1rem;
+    padding: 1rem 1.25rem;
+}
+
+.blazor-error-boundary::after {
+    content: "Đã xảy ra lỗi.";
+}

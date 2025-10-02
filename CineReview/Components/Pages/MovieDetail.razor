@@ -1,0 +1,258 @@
+@page "/movies/{MovieId:int}"
+@using System.Linq
+@using CineReview.Components.Shared
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Routing
+@inject IMovieDataProvider MovieDataProvider
+
+@{
+    var pageTitle = _profile is null ? "CineReview" : $"{_profile.Summary.Title} | CineReview";
+}
+
+<PageTitle>@pageTitle</PageTitle>
+
+@if (_isLoading)
+{
+    <section class="container-xl py-5 my-5 text-center">
+        <div class="spinner-border text-info" role="status"></div>
+    </section>
+}
+else if (_profile is null)
+{
+    <section class="container-xl py-5 my-5 text-center">
+        <h1 class="display-5 text-white mb-3">Không tìm thấy phim</h1>
+        <p class="text-secondary">Có thể phim đã bị gỡ khỏi hệ thống hoặc chưa được thêm vào dữ liệu minh họa.</p>
+        <a class="btn btn-outline-info" href="/">Quay lại trang chủ</a>
+    </section>
+}
+else
+{
+    <article class="movie-detail">
+        <section class="detail-hero position-relative overflow-hidden">
+            <div class="detail-hero__backdrop" style="background-image: url('@_profile.Summary.BackdropUrl');"></div>
+            <div class="detail-hero__overlay"></div>
+            <div class="container-xl position-relative">
+                <div class="row g-5 py-5 align-items-center">
+                    <div class="col-md-3 col-lg-2">
+                        <div class="ratio ratio-2x3 rounded-4 overflow-hidden shadow-lg detail-hero__poster">
+                            <img src="@_profile.Summary.PosterUrl" alt="Poster @_profile.Summary.Title" class="w-100 h-100 object-fit-cover" loading="lazy" />
+                        </div>
+                    </div>
+                    <div class="col-md-9 col-lg-7">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2">@_profile.Summary.ReleaseDate.ToString("dd MMM yyyy")</span>
+                            <span class="badge bg-dark-subtle text-secondary-emphasis rounded-pill px-3 py-2">@_profile.Certification</span>
+                        </div>
+                        <h1 class="display-4 fw-bold text-white mb-3">@_profile.Summary.Title</h1>
+                        <p class="lead text-light-emphasis mb-4">@_profile.Summary.Tagline</p>
+                        <p class="text-secondary mb-4">@_profile.Summary.Overview</p>
+                        <div class="d-flex flex-wrap gap-3 mb-4">
+                            <a class="btn btn-primary btn-lg rounded-pill" href="#tickets">Mua vé ngay</a>
+                            <a class="btn btn-outline-light btn-lg rounded-pill" href="#reviews">Viết review</a>
+                        </div>
+                        <div class="detail-hero__meta">
+                            <div>
+                                <span class="text-secondary">Điểm cộng đồng</span>
+                                <span class="fw-semibold text-white">@_profile.Summary.CommunityScore.ToString("0.0")</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary">Thời lượng</span>
+                                <span class="fw-semibold text-white">@_profile.RuntimeMinutes phút</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary">Trạng thái</span>
+                                <span class="fw-semibold text-white">@_profile.Status</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary">Chính sách review</span>
+                                @if (_profile.Summary.RequiresTicketVerification)
+                                {
+                                    <span class="fw-semibold text-warning">Cần xác thực vé</span>
+                                }
+                                else
+                                {
+                                    <span class="fw-semibold text-success">Tự do review</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3">
+                        <div class="detail-hero__info-card">
+                            <h2 class="h6 text-secondary text-uppercase">Thông tin nhanh</h2>
+                            <ul class="list-unstyled mb-0">
+                                <li><span>Thể loại</span><span>@string.Join(" / ", _profile.Summary.Genres)</span></li>
+                                <li><span>Ngày phát hành</span><span>@_profile.Summary.ReleaseDate.ToString("dd/MM/yyyy")</span></li>
+                                <li><span>Ngôn ngữ</span><span>EN / VI</span></li>
+                                <li><span>Chứng nhận</span><span>@_profile.Certification</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="detail-section" id="about">
+            <div class="container-xl">
+                <div class="row g-5">
+                    <div class="col-lg-8">
+                        <h2 class="h3 text-white mb-3">Điểm nhấn nội dung</h2>
+                        <ul class="detail-highlights">
+                            @foreach (var highlight in _profile.Highlights)
+                            {
+                                <li>@highlight</li>
+                            }
+                        </ul>
+
+                        <div class="ticket-policy" id="tickets">
+                            <h3 class="h5 text-white mb-2">Chính sách vé & review</h3>
+                            <p class="text-secondary mb-0">@_profile.TicketPolicyNote</p>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="watch-options">
+                            <h2 class="h5 text-white mb-3">Các định dạng đang mở bán</h2>
+                            <ul class="list-unstyled m-0">
+                                @foreach (var option in _profile.WatchOptions)
+                                {
+                                    <li><i class="bi bi-camera-reels me-2 text-info"></i>@option</li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="detail-section" id="cast">
+            <div class="container-xl">
+                <div class="section-header">
+                    <h2 class="h3 text-white mb-0">Diễn viên chính</h2>
+                </div>
+                <div class="cast-grid">
+                    @foreach (var cast in _profile.TopCast)
+                    {
+                        <div class="cast-card">
+                            <img src="@cast.HeadshotUrl" alt="@cast.Name" loading="lazy" />
+                            <div class="cast-card__info">
+                                <span class="fw-semibold text-white">@cast.Name</span>
+                                <span class="text-secondary">@cast.Character</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
+
+    @if (_profile.Videos.Any())
+        {
+            <section class="detail-section" id="videos">
+                <div class="container-xl">
+                    <div class="section-header">
+                        <h2 class="h3 text-white mb-0">Video chính thức</h2>
+                        <span class="text-secondary">Từ kênh @_profile.Videos.First().Provider</span>
+                    </div>
+                    <div class="row g-4">
+                        @foreach (var video in _profile.Videos)
+                        {
+                            <div class="col-12 col-lg-6">
+                                <a class="video-card" href="@video.VideoUrl" target="_blank" rel="noopener">
+                                    <div class="video-card__thumb">
+                                        <img src="@video.ThumbnailUrl" alt="@video.Title" loading="lazy" />
+                                        <span class="video-card__play"><i class="bi bi-play-fill"></i></span>
+                                    </div>
+                                    <div class="p-4">
+                                        <h3 class="h6 text-white mb-1">@video.Title</h3>
+                                        <span class="text-secondary small">Phát trên @video.Provider</span>
+                                    </div>
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </section>
+        }
+
+        <section class="detail-section" id="reviews">
+            <div class="container-xl">
+                <div class="section-header">
+                    <h2 class="h3 text-white mb-0">Review từ cộng đồng</h2>
+                    <a class="btn btn-outline-info btn-sm rounded-pill" href="#">Xem toàn bộ</a>
+                </div>
+                <div class="row g-4">
+                    @if (_profile.Reviews.Any())
+                    {
+                        @foreach (var review in _profile.Reviews)
+                        {
+                            <div class="col-12 col-lg-6">
+                                <div class="review-card h-100">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <img src="@review.AvatarUrl" alt="Avatar @review.Author" class="rounded-circle flex-shrink-0 review-card__avatar" loading="lazy" />
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <h3 class="h6 text-white mb-0">@review.Author</h3>
+                                                <span class="badge bg-warning-subtle text-warning-emphasis">@review.Rating/10</span>
+                                            </div>
+                                            <div class="text-secondary small mb-2">
+                                                <span>@review.CreatedAt.ToString("dd/MM/yyyy")</span>
+                                                @if (!string.IsNullOrWhiteSpace(review.Location))
+                                                {
+                                                    <span class="mx-2">•</span>
+                                                    <span>@review.Location</span>
+                                                }
+                                            </div>
+                                            <p class="text-secondary mb-2">@review.Excerpt</p>
+                                            @if (review.IsTicketVerified)
+                                            {
+                                                <span class="badge bg-success-subtle text-success-emphasis">Đã xác thực vé</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="col-12">
+                            <div class="alert alert-info bg-info-subtle border-info-subtle text-info-emphasis" role="alert">
+                                Hãy là người đầu tiên viết review sau khi xác thực vé của bạn.
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="detail-section" id="recommendations">
+            <div class="container-xl">
+                <div class="section-header">
+                    <h2 class="h3 text-white mb-0">Gợi ý cho bạn</h2>
+                    <span class="text-secondary">Những phim liên quan mà cộng đồng đang quan tâm.</span>
+                </div>
+                <div class="row g-4">
+                    @foreach (var movie in _profile.Recommended.Take(4))
+                    {
+                        <div class="col-12 col-sm-6 col-lg-3">
+                            <MovieCard Movie="movie" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
+    </article>
+}
+
+@code {
+    [Parameter]
+    public int MovieId { get; set; }
+
+    private MovieProfile? _profile;
+    private bool _isLoading;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        _profile = await MovieDataProvider.GetMovieDetailAsync(MovieId);
+        _isLoading = false;
+    }
+}

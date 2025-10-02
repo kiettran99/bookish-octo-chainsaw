@@ -1,0 +1,221 @@
+.movie-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 4.5rem;
+}
+
+.detail-hero {
+    padding: 6rem 0 4rem;
+}
+
+.detail-hero__backdrop {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(14px) brightness(0.35);
+    transform: scale(1.08);
+}
+
+.detail-hero__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(5, 7, 11, 0.9) 0%, rgba(8, 11, 19, 0.95) 55%, rgba(6, 9, 16, 0.9) 100%);
+}
+
+.detail-hero__poster {
+    box-shadow: 0 24px 50px rgba(15, 23, 42, 0.45);
+}
+
+.detail-hero__meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    background: rgba(15, 23, 42, 0.55);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+}
+
+.detail-hero__info-card {
+    background: rgba(15, 23, 42, 0.72);
+    border-radius: 1.5rem;
+    padding: 1.75rem;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+}
+
+.detail-hero__info-card ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin: 0;
+    padding: 0;
+}
+
+.detail-hero__info-card li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: rgba(226, 232, 240, 0.8);
+    font-size: 0.95rem;
+}
+
+.detail-section {
+    padding-inline: 1rem;
+}
+
+.section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.detail-highlights {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: grid;
+    gap: 1rem;
+}
+
+.detail-highlights li {
+    position: relative;
+    padding-left: 1.5rem;
+    color: rgba(226, 232, 240, 0.85);
+}
+
+.detail-highlights li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #38bdf8, #22d3ee);
+}
+
+.ticket-policy {
+    background: rgba(30, 41, 59, 0.65);
+    border-radius: 1.5rem;
+    padding: 1.75rem;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+}
+
+.watch-options {
+    background: rgba(8, 11, 19, 0.7);
+    border-radius: 1.5rem;
+    padding: 1.75rem;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+}
+
+.watch-options li {
+    color: rgba(226, 232, 240, 0.85);
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.watch-options li:last-child {
+    border-bottom: none;
+}
+
+.cast-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1.5rem;
+}
+
+.cast-card {
+    background: rgba(15, 23, 42, 0.7);
+    border-radius: 1.5rem;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+}
+
+.cast-card img {
+    width: 100%;
+    aspect-ratio: 3/4;
+    object-fit: cover;
+    border-radius: 1rem;
+    margin-bottom: 1rem;
+}
+
+.cast-card__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.video-card {
+    display: block;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    background: rgba(8, 11, 19, 0.72);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+    text-decoration: none;
+}
+
+.video-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+}
+
+.video-card__thumb {
+    position: relative;
+    aspect-ratio: 16/9;
+}
+
+.video-card__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-card__play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #f8fafc;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.35));
+}
+
+.review-card {
+    background: rgba(15, 23, 42, 0.72);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+}
+
+.review-card__avatar {
+    width: 3.25rem;
+    height: 3.25rem;
+    object-fit: cover;
+}
+
+@media (min-width: 768px) {
+    .detail-section {
+        padding-inline: 2rem;
+    }
+
+    .section-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: end;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .detail-hero {
+        padding-top: 4.5rem;
+    }
+
+    .detail-hero__info-card {
+        display: none;
+    }
+}

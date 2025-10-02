@@ -1,0 +1,43 @@
+.movie-card {
+    background: rgba(15, 23, 42, 0.72);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+    border-radius: 1.25rem;
+}
+
+.movie-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.45);
+}
+
+.movie-card__poster {
+    aspect-ratio: 2/3;
+    min-height: 18rem;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(30, 41, 59, 0.6));
+}
+
+.movie-card__poster img {
+    transition: transform 220ms ease;
+}
+
+.movie-card:hover .movie-card__poster img {
+    transform: scale(1.05);
+}
+
+.movie-card__status {
+    position: absolute;
+    top: 0.85rem;
+    left: 0.85rem;
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.movie-card .btn-outline-light {
+    border-color: rgba(226, 232, 240, 0.35);
+    color: #e2e8f0;
+}
+
+.movie-card .btn-outline-light:hover {
+    background-color: rgba(226, 232, 240, 0.12);
+}
