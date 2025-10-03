@@ -11,12 +11,50 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
 {
     private readonly HomePageData _homeSnapshot;
     private readonly IReadOnlyDictionary<int, MovieProfile> _movieDetails;
+    private readonly IReadOnlyList<MovieSummary> _allSummaries;
+    private readonly IReadOnlyList<MovieFilterOption> _genreOptions;
+    private readonly IReadOnlyList<MovieFilterOption> _regionOptions;
+    private readonly IReadOnlyDictionary<int, string> _sampleRegions;
 
     public SampleMovieDataProvider()
     {
-    var details = BuildMovieProfiles();
+        var details = BuildMovieProfiles();
         _movieDetails = details.ToDictionary(detail => detail.Summary.Id);
         _homeSnapshot = BuildHomeData(details);
+        _allSummaries = details
+            .Select(detail => detail.Summary)
+            .DistinctBy(summary => summary.Id)
+            .ToArray();
+
+        _sampleRegions = new Dictionary<int, string>
+        {
+            [693134] = "US",
+            [1029575] = "US",
+            [872585] = "US",
+            [558449] = "GB",
+            [823464] = "US"
+        };
+
+        _genreOptions = _allSummaries
+            .SelectMany(summary => summary.Genres)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name)
+            .Select(name => new MovieFilterOption(name, name))
+            .ToArray();
+
+        var regionLabels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["VN"] = "Việt Nam",
+            ["US"] = "Hoa Kỳ",
+            ["GB"] = "Vương quốc Anh",
+            ["JP"] = "Nhật Bản",
+            ["KR"] = "Hàn Quốc"
+        };
+
+        _regionOptions = regionLabels
+            .Select(kv => new MovieFilterOption(kv.Key, kv.Value))
+            .OrderBy(option => option.Label)
+            .ToArray();
     }
 
     public ValueTask<HomePageData> GetHomeAsync(CancellationToken cancellationToken = default)
@@ -41,6 +79,76 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
             page,
             "Sắp công chiếu",
             "Đặt lịch phát sóng để nhận nhắc và vé sớm từ CineReview."));
+
+    public ValueTask<MovieSearchResult> SearchMoviesAsync(MovieSearchRequest request, CancellationToken cancellationToken = default)
+    {
+        const int pageSize = 8;
+        var safePage = request.Page < 1 ? 1 : request.Page;
+
+        IEnumerable<MovieSummary> filtered = _allSummaries;
+
+        if (!string.IsNullOrWhiteSpace(request.Query))
+        {
+            filtered = filtered.Where(summary =>
+                summary.Title.Contains(request.Query, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(summary.Tagline) && summary.Tagline.Contains(request.Query, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(summary.Overview) && summary.Overview.Contains(request.Query, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Genre))
+        {
+            filtered = filtered.Where(summary => summary.Genres.Any(genre => string.Equals(genre, request.Genre, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (request.ReleaseFrom.HasValue)
+        {
+            filtered = filtered.Where(summary => summary.ReleaseDate.Date >= request.ReleaseFrom.Value.Date);
+        }
+
+        if (request.ReleaseTo.HasValue)
+        {
+            filtered = filtered.Where(summary => summary.ReleaseDate.Date <= request.ReleaseTo.Value.Date);
+        }
+
+        if (request.MinScore.HasValue)
+        {
+            filtered = filtered.Where(summary => summary.CommunityScore >= request.MinScore.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Region))
+        {
+            filtered = filtered.Where(summary =>
+                _sampleRegions.TryGetValue(summary.Id, out var regionCode) &&
+                string.Equals(regionCode, request.Region, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var filteredList = filtered.ToList();
+        var totalResults = filteredList.Count;
+        var totalPages = totalResults == 0 ? 1 : (int)Math.Ceiling(totalResults / (double)pageSize);
+        if (safePage > totalPages)
+        {
+            safePage = totalPages;
+        }
+
+        var items = filteredList
+            .Skip((safePage - 1) * pageSize)
+            .Take(pageSize)
+            .ToArray();
+
+        var title = string.IsNullOrWhiteSpace(request.Query)
+            ? "Tìm kiếm phim"
+            : $"Kết quả cho \"{request.Query}\"";
+
+        var description = totalResults switch
+        {
+            0 => "Không tìm thấy phim khớp với bộ lọc hiện tại. Thử điều chỉnh tiêu chí và tìm lại.",
+            1 => "Đã tìm thấy 1 phim khớp với bộ lọc của bạn.",
+            _ => $"Đã tìm thấy {totalResults} phim phù hợp với bộ lọc."
+        };
+
+        var page = new PaginatedMovies(items, totalResults == 0 ? 1 : safePage, totalPages, totalResults, title, description);
+        return ValueTask.FromResult(new MovieSearchResult(page, _genreOptions, _regionOptions));
+    }
 
     private static IReadOnlyList<MovieProfile> BuildMovieProfiles()
     {

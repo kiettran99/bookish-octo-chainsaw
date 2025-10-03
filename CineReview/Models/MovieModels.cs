@@ -82,3 +82,21 @@ public sealed record PaginatedMovies(
     string Title,
     string Description
 );
+
+public sealed record MovieFilterOption(string Value, string Label);
+
+public sealed record MovieSearchRequest(
+    string? Query,
+    int Page,
+    string? Genre,
+    DateTime? ReleaseFrom,
+    DateTime? ReleaseTo,
+    double? MinScore,
+    string? Region
+);
+
+public sealed record MovieSearchResult(
+    PaginatedMovies Page,
+    IReadOnlyList<MovieFilterOption> Genres,
+    IReadOnlyList<MovieFilterOption> Regions
+);

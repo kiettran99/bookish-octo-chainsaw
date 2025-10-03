@@ -25,6 +25,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
     private readonly JsonSerializerOptions _serializerOptions;
 
     private const string GenreCacheKey = "tmdb:genres:v1";
+    private const string CountryCacheKey = "tmdb:countries:v1";
 
     public TmdbMovieDataProvider(
         HttpClient httpClient,
@@ -156,6 +157,133 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             description: "Đặt lịch phát sóng để không bỏ lỡ vé early-access.",
             cancellationToken);
 
+    public async ValueTask<MovieSearchResult> SearchMoviesAsync(MovieSearchRequest request, CancellationToken cancellationToken = default)
+    {
+        var safePage = request.Page < 1 ? 1 : request.Page;
+        var genreLookup = await GetGenreLookupAsync(cancellationToken).ConfigureAwait(false);
+        var countries = await GetCountryOptionsAsync(cancellationToken).ConfigureAwait(false);
+
+        var hasQuery = !string.IsNullOrWhiteSpace(request.Query);
+        var endpoint = hasQuery ? "search/movie" : "discover/movie";
+        var query = new Dictionary<string, string?>
+        {
+            ["page"] = safePage.ToString(CultureInfo.InvariantCulture),
+            ["include_adult"] = "false"
+        };
+
+        if (hasQuery)
+        {
+            query["query"] = request.Query;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Region))
+        {
+            query["region"] = request.Region;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Genre) && !hasQuery)
+        {
+            query["with_genres"] = request.Genre;
+        }
+
+        if (request.ReleaseFrom.HasValue && !hasQuery)
+        {
+            query["primary_release_date.gte"] = request.ReleaseFrom.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        if (request.ReleaseTo.HasValue && !hasQuery)
+        {
+            query["primary_release_date.lte"] = request.ReleaseTo.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        if (request.MinScore.HasValue && !hasQuery)
+        {
+            query["vote_average.gte"] = request.MinScore.Value.ToString("0.0", CultureInfo.InvariantCulture);
+        }
+
+        if (!hasQuery)
+        {
+            query["sort_by"] = "popularity.desc";
+        }
+
+        var payload = await GetFromTmdbAsync<TmdbMovieListResponse>(endpoint, query, cancellationToken).ConfigureAwait(false);
+        if (payload is null)
+        {
+            var emptyPage = new PaginatedMovies(Array.Empty<MovieSummary>(), safePage, 1, 0, "Tìm kiếm phim", "Không lấy được dữ liệu từ TMDB. Vui lòng thử lại sau.");
+            return new MovieSearchResult(emptyPage, BuildGenreOptions(genreLookup), countries);
+        }
+
+        var summaries = new List<MovieSummary>();
+        if (payload.Results is not null)
+        {
+            foreach (var item in payload.Results)
+            {
+                if (item is null)
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.Genre) && hasQuery)
+                {
+                    if (!int.TryParse(request.Genre, NumberStyles.Integer, CultureInfo.InvariantCulture, out var genreId) ||
+                        item.GenreIds is null || !item.GenreIds.Contains(genreId))
+                    {
+                        continue;
+                    }
+                }
+
+                var releaseDate = ParseDate(item.ReleaseDate);
+
+                if (request.ReleaseFrom.HasValue && hasQuery)
+                {
+                    if (releaseDate is null || releaseDate.Value.Date < request.ReleaseFrom.Value.Date)
+                    {
+                        continue;
+                    }
+                }
+
+                if (request.ReleaseTo.HasValue && hasQuery)
+                {
+                    if (releaseDate is null || releaseDate.Value.Date > request.ReleaseTo.Value.Date)
+                    {
+                        continue;
+                    }
+                }
+
+                if (request.MinScore.HasValue && hasQuery)
+                {
+                    if (item.VoteAverage < request.MinScore.Value)
+                    {
+                        continue;
+                    }
+                }
+
+                var summary = MapToSummary(item, genreLookup, isNowPlaying: null);
+                summaries.Add(summary);
+            }
+        }
+
+        var resolvedPage = payload.Page <= 0 ? safePage : payload.Page;
+        var resolvedTotalPages = payload.TotalPages <= 0 ? Math.Max(resolvedPage, 1) : payload.TotalPages;
+        var resolvedTotalResults = payload.TotalResults;
+
+        if (hasQuery)
+        {
+            resolvedTotalResults = Math.Min(resolvedTotalResults, resolvedTotalPages * summaries.Count);
+        }
+
+        var pageTitle = hasQuery ? $"Kết quả cho \"{request.Query}\"" : "Tìm kiếm phim";
+        var description = resolvedTotalResults switch
+        {
+            0 => "Không tìm thấy phim khớp với bộ lọc hiện tại. Thử điều chỉnh tiêu chí và tìm lại.",
+            1 => "Đã tìm thấy 1 phim khớp với bộ lọc của bạn.",
+            _ => $"Đã tìm thấy {resolvedTotalResults:N0} phim phù hợp với bộ lọc."
+        };
+
+        var page = new PaginatedMovies(summaries, resolvedPage, resolvedTotalPages, resolvedTotalResults, pageTitle, description);
+    return new MovieSearchResult(page, BuildGenreOptions(genreLookup), countries);
+    }
+
     private async Task<IReadOnlyList<MovieSummary>> GetMovieSummariesAsync(
         string path,
         bool? isNowPlaying,
@@ -205,6 +333,38 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
     {
         var detail = await GetMovieDetailPayloadAsync(id, includeExtended: false, cancellationToken).ConfigureAwait(false);
         return detail is null ? null : MapToSummary(detail, genreLookup, inferIsNowPlaying: null);
+    }
+
+    private async Task<IReadOnlyList<MovieFilterOption>> GetCountryOptionsAsync(CancellationToken cancellationToken)
+    {
+        if (_cache.TryGetValue<IReadOnlyList<MovieFilterOption>>(CountryCacheKey, out var cached) && cached is not null)
+        {
+            return cached;
+        }
+
+        var payload = await GetFromTmdbAsync<List<TmdbCountry>>("configuration/countries", null, cancellationToken).ConfigureAwait(false);
+        if (payload is null || payload.Count == 0)
+        {
+            return Array.Empty<MovieFilterOption>();
+        }
+
+        var options = payload
+            .Where(country => !string.IsNullOrWhiteSpace(country.Iso3166) && !string.IsNullOrWhiteSpace(country.EnglishName))
+            .OrderBy(country => country.EnglishName)
+            .Select(country => new MovieFilterOption(country.Iso3166!, country.EnglishName!))
+            .ToArray();
+
+        _cache.Set(CountryCacheKey, options, _options.CacheDuration);
+        return options;
+    }
+
+    private static IReadOnlyList<MovieFilterOption> BuildGenreOptions(IDictionary<int, string> genreLookup)
+    {
+        return genreLookup
+            .Where(kv => kv.Key > 0 && !string.IsNullOrWhiteSpace(kv.Value))
+            .OrderBy(kv => kv.Value)
+            .Select(kv => new MovieFilterOption(kv.Key.ToString(CultureInfo.InvariantCulture), kv.Value))
+            .ToArray();
     }
 
     private async ValueTask<PaginatedMovies> GetPagedMoviesAsync(
@@ -720,6 +880,15 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
     {
         [JsonPropertyName("genres")]
         public List<TmdbGenre>? Genres { get; init; }
+    }
+
+    private sealed record TmdbCountry
+    {
+        [JsonPropertyName("iso_3166_1")]
+        public string? Iso3166 { get; init; }
+
+        [JsonPropertyName("english_name")]
+        public string? EnglishName { get; init; }
     }
 
     private sealed record TmdbGenre
