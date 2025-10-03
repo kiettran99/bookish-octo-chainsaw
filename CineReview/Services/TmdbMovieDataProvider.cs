@@ -138,6 +138,24 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             Recommended: recommendations);
     }
 
+    public ValueTask<PaginatedMovies> GetNowPlayingAsync(int page, CancellationToken cancellationToken = default)
+        => GetPagedMoviesAsync(
+            "movie/now_playing",
+            page,
+            isNowPlaying: true,
+            title: "Đang chiếu nổi bật",
+            description: "Các suất chiếu đang mở bán, hãy xác thực vé để bật review.",
+            cancellationToken);
+
+    public ValueTask<PaginatedMovies> GetComingSoonAsync(int page, CancellationToken cancellationToken = default)
+        => GetPagedMoviesAsync(
+            "movie/upcoming",
+            page,
+            isNowPlaying: false,
+            title: "Sắp công chiếu",
+            description: "Đặt lịch phát sóng để không bỏ lỡ vé early-access.",
+            cancellationToken);
+
     private async Task<IReadOnlyList<MovieSummary>> GetMovieSummariesAsync(
         string path,
         bool? isNowPlaying,
@@ -187,6 +205,52 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
     {
         var detail = await GetMovieDetailPayloadAsync(id, includeExtended: false, cancellationToken).ConfigureAwait(false);
         return detail is null ? null : MapToSummary(detail, genreLookup, inferIsNowPlaying: null);
+    }
+
+    private async ValueTask<PaginatedMovies> GetPagedMoviesAsync(
+        string path,
+        int requestedPage,
+        bool? isNowPlaying,
+        string title,
+        string description,
+        CancellationToken cancellationToken)
+    {
+        var safePage = requestedPage < 1 ? 1 : requestedPage;
+        var query = new Dictionary<string, string?>
+        {
+            ["page"] = safePage.ToString(CultureInfo.InvariantCulture)
+        };
+
+        var genreLookup = await GetGenreLookupAsync(cancellationToken).ConfigureAwait(false);
+        var payload = await GetFromTmdbAsync<TmdbMovieListResponse>(path, query, cancellationToken).ConfigureAwait(false);
+
+        if (payload?.Results is null || payload.Results.Count == 0)
+        {
+            var totalPagesFallback = payload is null || payload.TotalPages <= 0 ? 1 : payload.TotalPages;
+            return new PaginatedMovies(Array.Empty<MovieSummary>(), safePage, totalPagesFallback, payload?.TotalResults ?? 0, title, description);
+        }
+
+        var summaries = new List<MovieSummary>(payload.Results.Count);
+        foreach (var item in payload.Results)
+        {
+            if (string.IsNullOrWhiteSpace(item.Title) && string.IsNullOrWhiteSpace(item.OriginalTitle))
+            {
+                continue;
+            }
+
+            summaries.Add(MapToSummary(item, genreLookup, isNowPlaying));
+        }
+
+        var resolvedPage = payload.Page <= 0 ? safePage : payload.Page;
+        var resolvedTotalPages = payload.TotalPages <= 0 ? resolvedPage : payload.TotalPages;
+
+        return new PaginatedMovies(
+            summaries,
+            resolvedPage,
+            resolvedTotalPages,
+            payload.TotalResults,
+            title,
+            description);
     }
 
     private MovieSummary MapToSummary(TmdbMovieDetail detail, IDictionary<int, string> genreLookup, bool? inferIsNowPlaying)
@@ -669,6 +733,15 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
 
     private sealed record TmdbMovieListResponse
     {
+        [JsonPropertyName("page")]
+        public int Page { get; init; }
+
+        [JsonPropertyName("total_pages")]
+        public int TotalPages { get; init; }
+
+        [JsonPropertyName("total_results")]
+        public int TotalResults { get; init; }
+
         [JsonPropertyName("results")]
         public List<TmdbMovieListItem> Results { get; init; } = new();
     }

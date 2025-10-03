@@ -1,0 +1,124 @@
+@page "/movies/coming-soon"
+@using CineReview.Components.Shared
+@using CineReview.Models
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@inject IMovieDataProvider MovieDataProvider
+@inject NavigationManager NavigationManager
+
+<Microsoft.AspNetCore.Components.Web.PageTitle>Sắp công chiếu | CineReview</Microsoft.AspNetCore.Components.Web.PageTitle>
+
+@if (_isLoading)
+{
+    <section class="container-xl py-5 my-5 text-center">
+        <div class="spinner-border text-info" role="status"></div>
+    </section>
+}
+else if (_pageResult is null || _pageResult.TotalResults == 0)
+{
+    <section class="container-xl py-5 my-5 text-center">
+        <h1 class="display-5 text-white mb-3">Chưa có phim sắp công chiếu</h1>
+        <p class="text-secondary mb-4">Chúng tôi sẽ cập nhật danh sách phim và lịch phát sóng ngay khi có thông tin mới.</p>
+        <a class="btn btn-outline-info" href="/">Quay lại trang chủ</a>
+    </section>
+}
+else
+{
+    <section class="container-xl py-5 my-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+            <div>
+                <p class="text-secondary text-uppercase small fw-semibold mb-2">Trang @_pageResult.Page/@_pageResult.TotalPages · @_pageResult.TotalResults phim</p>
+                <h1 class="display-5 fw-bold text-white mb-2">@_pageResult.Title</h1>
+                <p class="text-secondary mb-0">@_pageResult.Description</p>
+            </div>
+            <div class="d-flex flex-column flex-sm-row gap-2">
+                <a class="btn btn-primary btn-glow" href="#schedule">Đặt lịch phát sóng</a>
+                <a class="btn btn-ghost" href="/">Quay lại trang chủ</a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            @foreach (var movie in _pageResult.Items)
+            {
+                <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                    <CineReview.Components.Shared.MovieCard Movie="movie" />
+                </div>
+            }
+        </div>
+
+        <div id="schedule" class="schedule-banner mt-5 mb-4 p-4 rounded-4 border border-info-subtle text-info-emphasis">
+            <div class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center justify-content-lg-between">
+                <div>
+                    <h2 class="h5 fw-semibold mb-2">Nhận thông báo suất chiếu sớm</h2>
+                    <p class="mb-0 text-white">Đăng ký email để được ưu tiên nhận vé early-access và ưu đãi từ CineReview.</p>
+                </div>
+                <a class="btn btn-outline-info" href="mailto:press@cinereview.vn?subject=Dang%20ky%20lich%20phat%20song">Đăng ký ngay</a>
+            </div>
+        </div>
+
+        @if (_pageResult.TotalPages > 1)
+        {
+            <nav class="mt-4" aria-label="Phân trang phim sắp công chiếu">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(_pageResult.Page <= 1 ? "disabled" : null)">
+                        <a class="page-link" href="@BuildPageUrl(_pageResult.Page - 1)" aria-label="Trang trước">&lsaquo;</a>
+                    </li>
+                    @foreach (var pageNumber in GetPageNumbers(_pageResult.Page, _pageResult.TotalPages))
+                    {
+                        <li class="page-item @(pageNumber == _pageResult.Page ? "active" : null)">
+                            <a class="page-link" href="@BuildPageUrl(pageNumber)">@pageNumber</a>
+                        </li>
+                    }
+                    <li class="page-item @(_pageResult.Page >= _pageResult.TotalPages ? "disabled" : null)">
+                        <a class="page-link" href="@BuildPageUrl(_pageResult.Page + 1)" aria-label="Trang sau">&rsaquo;</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    </section>
+}
+
+@code {
+    private const string BasePath = "/movies/coming-soon";
+
+    [SupplyParameterFromQuery(Name = "page")]
+    public int Page { get; set; } = 1;
+
+    private PaginatedMovies? _pageResult;
+    private bool _isLoading;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var requestedPage = Page < 1 ? 1 : Page;
+            _pageResult = await MovieDataProvider.GetComingSoonAsync(requestedPage);
+
+            if (_pageResult.TotalResults > 0 && requestedPage > _pageResult.TotalPages && _pageResult.TotalPages > 0)
+            {
+                NavigationManager.NavigateTo(BuildPageUrl(_pageResult.TotalPages), replace: true);
+            }
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static IEnumerable<int> GetPageNumbers(int current, int total)
+    {
+        const int window = 5;
+        var start = Math.Max(1, current - 2);
+        var end = Math.Min(total, start + window - 1);
+        start = Math.Max(1, end - window + 1);
+
+        for (var page = start; page <= end; page++)
+        {
+            yield return page;
+        }
+    }
+
+    private static string BuildPageUrl(int page)
+        => page <= 1 ? BasePath : $"{BasePath}?page={page}";
+}

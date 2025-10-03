@@ -28,6 +28,20 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
         return ValueTask.FromResult(detail);
     }
 
+    public ValueTask<PaginatedMovies> GetNowPlayingAsync(int page, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(BuildPagedResult(
+            _homeSnapshot.NowPlaying,
+            page,
+            "Đang chiếu nổi bật",
+            "Các suất chiếu đang mở bán, hãy xác thực vé để bật review."));
+
+    public ValueTask<PaginatedMovies> GetComingSoonAsync(int page, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(BuildPagedResult(
+            _homeSnapshot.ComingSoon,
+            page,
+            "Sắp công chiếu",
+            "Đặt lịch phát sóng để nhận nhắc và vé sớm từ CineReview."));
+
     private static IReadOnlyList<MovieProfile> BuildMovieProfiles()
     {
         var dune = new MovieSummary(
@@ -327,5 +341,34 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
             LatestReviews: latestReviews,
             EditorialSpots: editorial
         );
+    }
+
+    private static PaginatedMovies BuildPagedResult(
+        IReadOnlyList<MovieSummary> source,
+        int requestedPage,
+        string title,
+        string description)
+    {
+        const int pageSize = 8;
+        if (source.Count == 0)
+        {
+            return new PaginatedMovies(Array.Empty<MovieSummary>(), 1, 1, 0, title, description);
+        }
+
+        var safePage = requestedPage < 1 ? 1 : requestedPage;
+        var totalPages = (int)Math.Ceiling(source.Count / (double)pageSize);
+        totalPages = totalPages < 1 ? 1 : totalPages;
+
+        if (safePage > totalPages)
+        {
+            safePage = totalPages;
+        }
+
+        var pageItems = source
+            .Skip((safePage - 1) * pageSize)
+            .Take(pageSize)
+            .ToArray();
+
+        return new PaginatedMovies(pageItems, safePage, totalPages, source.Count, title, description);
     }
 }

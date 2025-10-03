@@ -73,3 +73,12 @@ public sealed record HomePageData(
     IReadOnlyList<ReviewSnapshot> LatestReviews,
     IReadOnlyList<EditorialSpotlight> EditorialSpots
 );
+
+public sealed record PaginatedMovies(
+    IReadOnlyList<MovieSummary> Items,
+    int Page,
+    int TotalPages,
+    int TotalResults,
+    string Title,
+    string Description
+);
