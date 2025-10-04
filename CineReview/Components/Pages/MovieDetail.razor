@@ -50,7 +50,7 @@ else
             <div class="container-xl position-relative">
                 <div class="detail-hero__layout-mobile d-md-none">
                     <div class="detail-hero__poster-shell">
-                        <div class="ratio ratio-2x3 rounded-4 overflow-hidden shadow-lg detail-hero__poster @(hasPoster ? string.Empty : "detail-hero__poster--fallback")">
+                        <div class="rounded-4 overflow-hidden shadow-lg detail-hero__poster @(hasPoster ? string.Empty : "detail-hero__poster--fallback")">
                             @if (hasPoster)
                             {
                                 <img src="@posterUrl" alt="Poster @summary?.Title" class="w-100 h-100 object-fit-cover" loading="lazy" />
@@ -107,7 +107,7 @@ else
 
                 <div class="detail-hero__layout d-none d-md-grid py-2">
                     <div class="detail-hero__poster-shell">
-                        <div class="ratio ratio-2x3 rounded-4 overflow-hidden shadow-lg detail-hero__poster @(hasPoster ? string.Empty : "detail-hero__poster--fallback")">
+                        <div class="rounded-4 overflow-hidden shadow-lg detail-hero__poster @(hasPoster ? string.Empty : "detail-hero__poster--fallback")">
                             @if (hasPoster)
                             {
                                 <img src="@posterUrl" alt="Poster @summary?.Title" class="w-100 h-100 object-fit-cover" loading="lazy" />

@@ -2,7 +2,10 @@
 
 <div class="movie-card card h-100 border-0 shadow-sm">
     <div class="movie-card__poster position-relative overflow-hidden rounded-4">
-        <img src="@Movie.PosterUrl" alt="Poster @Movie.Title" class="w-100 h-100 object-fit-cover" loading="lazy" />
+        <a href="@($"/movies/{Movie.Id}")" class="d-block w-100 h-100">
+            <img src="@Movie.PosterUrl" alt="Poster @Movie.Title" class="w-100 h-100 object-fit-cover" loading="lazy"
+                style="cursor:pointer;" />
+        </a>
         @if (Movie.IsNowPlaying)
         {
             <span class="badge chip chip--danger movie-card__status">Đang chiếu</span>
