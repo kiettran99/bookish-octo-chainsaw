@@ -721,20 +721,70 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             .ToArray();
     }
 
+    private static string BuildUsername(string author)
+    {
+        if (string.IsNullOrWhiteSpace(author))
+        {
+            return "@reviewer";
+        }
+
+        var normalized = new string(author
+            .Trim()
+            .ToLowerInvariant()
+            .Select(ch =>
+                char.IsLetterOrDigit(ch) ? ch :
+                ch is ' ' or '.' or '-' ? '_' :
+                '\0')
+            .Where(ch => ch != '\0')
+            .ToArray());
+
+        normalized = normalized.Trim('_');
+        if (string.IsNullOrEmpty(normalized))
+        {
+            normalized = "cinefan";
+        }
+
+        return '@' + normalized;
+    }
+
     private static IReadOnlyList<ReviewSnapshot> BuildDetailReviews(MovieSummary summary)
     {
         var releaseLabel = summary.ReleaseDate > DateTime.UtcNow
             ? "Suất chiếu sớm"
             : "Khán giả CineReview";
 
+        static string BuildBadge()
+        {
+            var badges = new[]
+            {
+                "Vua xem phim",
+                "Người review có tiếng",
+                "Fan cứng CineReview",
+                "Ít tiền nhưng ham xem phim",
+                "Thành viên cộng đồng",
+                "Chuyên gia review",
+                "Người truyền cảm hứng",
+                "Reviewer kỳ cựu",
+                "Người săn suất đầu",
+                "Fan suất đầu"
+            };
+            var rnd = new Random();
+            return badges[rnd.Next(badges.Length)];
+        }
+
         return new[]
         {
             new ReviewSnapshot(
                 Id: $"rv-{summary.Id}-preview",
                 Author: "Lan Phạm",
+                Username: BuildUsername("Lan Phạm"),
                 AvatarUrl: "https://i.pravatar.cc/96?img=36",
+                BadgeLabel: BuildBadge(),
                 Excerpt: "Cốt truyện được xử lý mạch lạc, hình ảnh rất ấn tượng so với kỳ vọng ban đầu.",
                 Rating: 8,
+                FairVotes: summary.RequiresTicketVerification ? 122 : 96,
+                UnfairVotes: 5,
+                SupportScore: (summary.RequiresTicketVerification ? 122 : 96) - 5,
                 CreatedAt: DateTime.UtcNow.AddDays(-2),
                 IsTicketVerified: summary.RequiresTicketVerification,
                 ContextLabel: summary.Title,
@@ -742,11 +792,16 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             new ReviewSnapshot(
                 Id: $"rv-{summary.Id}-buzz",
                 Author: "Minh Đức",
+                Username: BuildUsername("Minh Đức"),
                 AvatarUrl: "https://i.pravatar.cc/96?img=14",
+                BadgeLabel: BuildBadge(),
                 Excerpt: "Đáng để đặt vé suất đầu tiên, đặc biệt nếu bạn yêu thích thể loại này.",
                 Rating: 9,
+                FairVotes: summary.RequiresTicketVerification ? 101 : 82,
+                UnfairVotes: 9,
+                SupportScore: (summary.RequiresTicketVerification ? 101 : 82) - 9,
                 CreatedAt: DateTime.UtcNow.AddDays(-5),
-                IsTicketVerified: summary.RequiresTicketVerification,
+                IsTicketVerified: false,
                 ContextLabel: releaseLabel,
                 Location: "Ha Noi, VN")
         };
@@ -775,9 +830,14 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             new ReviewSnapshot(
                 Id: "home-rv-1",
                 Author: "Gia Hân",
+                Username: BuildUsername("Gia Hân"),
                 AvatarUrl: "https://i.pravatar.cc/96?img=52",
+                BadgeLabel: featured.RequiresTicketVerification ? "Fan suất đầu" : "Thành viên cộng đồng",
                 Excerpt: $"{featured.Title} mang đến trải nghiệm điện ảnh rất đáng chờ đợi.",
                 Rating: 9,
+                FairVotes: featured.RequiresTicketVerification ? 148 : 112,
+                UnfairVotes: 7,
+                SupportScore: (featured.RequiresTicketVerification ? 148 : 112) - 7,
                 CreatedAt: DateTime.UtcNow.AddDays(-1),
                 IsTicketVerified: featured.RequiresTicketVerification,
                 ContextLabel: featured.Title,
@@ -785,9 +845,14 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             new ReviewSnapshot(
                 Id: "home-rv-2",
                 Author: "Minh Tân",
+                Username: BuildUsername("Minh Tân"),
                 AvatarUrl: "https://i.pravatar.cc/96?img=21",
+                BadgeLabel: "Thành viên kỳ cựu",
                 Excerpt: "Âm thanh và hình ảnh đều vượt kỳ vọng, nên đặt vé suất IMAX.",
                 Rating: 8,
+                FairVotes: 106,
+                UnfairVotes: 11,
+                SupportScore: 106 - 11,
                 CreatedAt: DateTime.UtcNow.AddDays(-3),
                 IsTicketVerified: featured.RequiresTicketVerification,
                 ContextLabel: featured.Title,
@@ -795,9 +860,14 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             new ReviewSnapshot(
                 Id: "home-rv-3",
                 Author: "Ngọc Anh",
+                Username: BuildUsername("Ngọc Anh"),
                 AvatarUrl: "https://i.pravatar.cc/96?img=9",
+                BadgeLabel: "Cộng đồng CineReview",
                 Excerpt: "Câu chuyện chạm tới cảm xúc, phù hợp xem cùng bạn bè.",
                 Rating: 8,
+                FairVotes: 88,
+                UnfairVotes: 10,
+                SupportScore: 88 - 10,
                 CreatedAt: DateTime.UtcNow.AddDays(-6),
                 IsTicketVerified: false,
                 ContextLabel: "Cộng đồng CineReview",
@@ -805,9 +875,14 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             new ReviewSnapshot(
                 Id: "home-rv-4",
                 Author: "Quang Huy",
+                Username: BuildUsername("Quang Huy"),
                 AvatarUrl: "https://i.pravatar.cc/96?img=60",
+                BadgeLabel: "Ticket Verified",
                 Excerpt: "Xác thực vé cực nhanh, mình đã đăng review chỉ sau 5 phút.",
                 Rating: 10,
+                FairVotes: 132,
+                UnfairVotes: 4,
+                SupportScore: 132 - 4,
                 CreatedAt: DateTime.UtcNow.AddDays(-8),
                 IsTicketVerified: true,
                 ContextLabel: "Ticket Verified",

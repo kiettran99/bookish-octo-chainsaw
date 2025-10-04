@@ -256,8 +256,36 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 },
                 Reviews: new[]
                 {
-                    new ReviewSnapshot("rv-dune-1", "Mai Anh", "https://i.pravatar.cc/96?img=47", "Một tác phẩm hoành tráng khiến mình nghẹt thở từ đầu tới cuối.", 9, new DateTime(2024, 3, 2, 12, 0, 0, DateTimeKind.Utc), true, "Dune: Part Two", "Ho Chi Minh City, VN"),
-                    new ReviewSnapshot("rv-dune-2", "Huy Tran", "https://i.pravatar.cc/96?img=65", "Villeneuve đưa khán giả trở lại Arrakis với quy mô lớn hơn hẳn phần đầu.", 8, new DateTime(2024, 3, 5, 8, 30, 0, DateTimeKind.Utc), true, "Dune: Part Two", "Da Nang, VN")
+                    new ReviewSnapshot(
+                        Id: "rv-dune-1",
+                        Author: "Mai Anh",
+                        Username: "@maianh.cine",
+                        AvatarUrl: "https://i.pravatar.cc/96?img=47",
+                        BadgeLabel: "Reviewer tích cực",
+                        Excerpt: "Một tác phẩm hoành tráng khiến mình nghẹt thở từ đầu tới cuối.",
+                        Rating: 9,
+                        SupportScore: 132,
+                        FairVotes: 248,
+                        UnfairVotes: 6,
+                        CreatedAt: new DateTime(2024, 3, 2, 12, 0, 0, DateTimeKind.Utc),
+                        IsTicketVerified: true,
+                        ContextLabel: "Dune: Part Two",
+                        Location: "Ho Chi Minh City, VN"),
+                    new ReviewSnapshot(
+                        Id: "rv-dune-2",
+                        Author: "Huy Tran",
+                        Username: "@huy.arrakis",
+                        AvatarUrl: "https://i.pravatar.cc/96?img=65",
+                        BadgeLabel: "Người review thẳng thắn",
+                        Excerpt: "Villeneuve đưa khán giả trở lại Arrakis với quy mô lớn hơn hẳn phần đầu.",
+                        Rating: 8,
+                        SupportScore: -14,
+                        FairVotes: 61,
+                        UnfairVotes: 22,
+                        CreatedAt: new DateTime(2024, 3, 5, 8, 30, 0, DateTimeKind.Utc),
+                        IsTicketVerified: true,
+                        ContextLabel: "Dune: Part Two",
+                        Location: "Da Nang, VN")
                 },
                 Recommended: new[] { insideOut, oppenheimer, gladiator }
             ),
@@ -292,8 +320,36 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 },
                 Reviews: new[]
                 {
-                    new ReviewSnapshot("rv-insideout2-1", "Lan Chi", "https://i.pravatar.cc/96?img=11", "Cả gia đình mình đã cười và khóc cùng Riley. Một phần tiếp theo rất đáng yêu.", 9, new DateTime(2024, 6, 12, 14, 0, 0, DateTimeKind.Utc), true, "Inside Out 2", "Hanoi, VN"),
-                    new ReviewSnapshot("rv-insideout2-2", "Thanh Do", "https://i.pravatar.cc/96?img=58", "Các cảm xúc mới hơi vội vàng nhưng thông điệp vẫn rất chạm.", 7, new DateTime(2024, 6, 13, 19, 15, 0, DateTimeKind.Utc), true, "Inside Out 2", "Hue, VN")
+                    new ReviewSnapshot(
+                        Id: "rv-insideout2-1",
+                        Author: "Lan Chi",
+                        Username: "@lan.chill",
+                        AvatarUrl: "https://i.pravatar.cc/96?img=11",
+                        BadgeLabel: "Gia đình CineReview",
+                        Excerpt: "Cả gia đình mình đã cười và khóc cùng Riley. Một phần tiếp theo rất đáng yêu.",
+                        Rating: 9,
+                        SupportScore: 98,
+                        FairVotes: 184,
+                        UnfairVotes: 9,
+                        CreatedAt: new DateTime(2024, 6, 12, 14, 0, 0, DateTimeKind.Utc),
+                        IsTicketVerified: true,
+                        ContextLabel: "Inside Out 2",
+                        Location: "Hanoi, VN"),
+                    new ReviewSnapshot(
+                        Id: "rv-insideout2-2",
+                        Author: "Thanh Do",
+                        Username: "@thanhdocmt",
+                        AvatarUrl: "https://i.pravatar.cc/96?img=58",
+                        BadgeLabel: "Người review cân bằng",
+                        Excerpt: "Các cảm xúc mới hơi vội vàng nhưng thông điệp vẫn rất chạm.",
+                        Rating: 7,
+                        SupportScore: 24,
+                        FairVotes: 102,
+                        UnfairVotes: 11,
+                        CreatedAt: new DateTime(2024, 6, 13, 19, 15, 0, DateTimeKind.Utc),
+                        IsTicketVerified: true,
+                        ContextLabel: "Inside Out 2",
+                        Location: "Hue, VN")
                 },
                 Recommended: new[] { dune, oppenheimer, wicked }
             ),
@@ -328,8 +384,36 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 },
                 Reviews: new[]
                 {
-                    new ReviewSnapshot("rv-opp-1", "Hoang Nguyen", "https://i.pravatar.cc/96?img=78", "Ba tiếng đồng hồ nhưng không phút nào mình cảm thấy thừa.", 10, new DateTime(2023, 7, 22, 18, 45, 0, DateTimeKind.Utc), false, "Oppenheimer", "Da Nang, VN"),
-                    new ReviewSnapshot("rv-opp-2", "Thu Minh", "https://i.pravatar.cc/96?img=38", "Câu chuyện chính trị phức tạp nhưng được kể rất hấp dẫn.", 8, new DateTime(2023, 7, 24, 9, 0, 0, DateTimeKind.Utc), false, "Oppenheimer", "Can Tho, VN")
+                    new ReviewSnapshot(
+                        Id: "rv-opp-1",
+                        Author: "Hoang Nguyen",
+                        Username: "@hoangwrites",
+                        AvatarUrl: "https://i.pravatar.cc/96?img=78",
+                        BadgeLabel: "Hội trường bom tấn",
+                        Excerpt: "Ba tiếng đồng hồ nhưng không phút nào mình cảm thấy thừa.",
+                        Rating: 10,
+                        SupportScore: 156,
+                        FairVotes: 304,
+                        UnfairVotes: 8,
+                        CreatedAt: new DateTime(2023, 7, 22, 18, 45, 0, DateTimeKind.Utc),
+                        IsTicketVerified: false,
+                        ContextLabel: "Oppenheimer",
+                        Location: "Da Nang, VN"),
+                    new ReviewSnapshot(
+                        Id: "rv-opp-2",
+                        Author: "Thu Minh",
+                        Username: "@minhthu.review",
+                        AvatarUrl: "https://i.pravatar.cc/96?img=38",
+                        BadgeLabel: "Phân tích chính trị",
+                        Excerpt: "Câu chuyện chính trị phức tạp nhưng được kể rất hấp dẫn.",
+                        Rating: 8,
+                        SupportScore: 41,
+                        FairVotes: 119,
+                        UnfairVotes: 13,
+                        CreatedAt: new DateTime(2023, 7, 24, 9, 0, 0, DateTimeKind.Utc),
+                        IsTicketVerified: false,
+                        ContextLabel: "Oppenheimer",
+                        Location: "Can Tho, VN")
                 },
                 Recommended: new[] { dune, gladiator, wicked }
             ),

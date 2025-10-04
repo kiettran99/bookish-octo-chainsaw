@@ -1,4 +1,5 @@
 @page "/movies/{MovieId:int}"
+@using System.Globalization
 @using System.Linq
 @using CineReview.Components.Shared
 @using Microsoft.AspNetCore.Components.Web
@@ -294,31 +295,52 @@ else
                     {
                         @foreach (var review in _profile.Reviews)
                         {
-                            <div class="col-12 col-lg-6">
-                                <div class="review-card h-100">
-                                    <div class="d-flex align-items-start gap-3">
-                                        <img src="@review.AvatarUrl" alt="Avatar @review.Author" class="rounded-circle flex-shrink-0 review-card__avatar" loading="lazy" />
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                                <h3 class="h6 text-white mb-0">@review.Author</h3>
-                                                <span class="badge chip chip--warning">@review.Rating/10</span>
+                            var supportTone = DetermineSupportTone(review.SupportScore);
+                            var supportValue = FormatSupportScore(review.SupportScore);
+                            <div class="col-12">
+                                <article class="community-review">
+                                    <div class="community-review__support" data-tone="@supportTone">
+                                        <span class="community-review__support-value">@supportValue</span>
+                                        <span class="community-review__support-label">ủng hộ</span>
+                                    </div>
+                                    <div class="community-review__content">
+                                        <header class="community-review__header">
+                                            <div class="community-review__author">
+                                                <img src="@review.AvatarUrl" alt="Avatar @review.Author" class="community-review__avatar" loading="lazy" />
+                                                <div>
+                                                    <span class="community-review__name">@review.Author</span>
+                                                    <span class="community-review__badge">@review.BadgeLabel
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div class="text-secondary small mb-2">
-                                                <span>@review.CreatedAt.ToString("dd/MM/yyyy")</span>
-                                                @if (!string.IsNullOrWhiteSpace(review.Location))
-                                                {
-                                                    <span class="mx-2">•</span>
-                                                    <span>@review.Location</span>
-                                                }
+                                            <div class="community-review__meta">
+                                                <span class="community-review__username">@review.Username</span>
+                                                <span class="community-review__score">@review.Rating/10</span>
                                             </div>
-                                            <p class="text-secondary mb-2">@review.Excerpt</p>
+                                        </header>
+                                        <p class="community-review__excerpt">@review.Excerpt</p>
+                                        <footer class="community-review__footer">
+                                            <span>@review.CreatedAt.ToString("dd/MM/yyyy")</span>
+                                            @if (!string.IsNullOrWhiteSpace(review.Location))
+                                            {
+                                                <span class="community-review__bullet">•</span>
+                                                <span>@review.Location</span>
+                                            }
                                             @if (review.IsTicketVerified)
                                             {
                                                 <span class="badge chip chip--success">Đã xác thực vé</span>
                                             }
-                                        </div>
+                                        </footer>
                                     </div>
-                                </div>
+                                    <div class="community-review__actions">
+                                        <button type="button" class="community-review__action community-review__action--fair">
+                                            <span class="community-review__action-label">Công tâm</span>
+                                        </button>
+                                        <button type="button" class="community-review__action community-review__action--unfair">
+                                            <span class="community-review__action-label">Không công tâm</span>
+                                        </button>
+                                    </div>
+                                </article>
                             </div>
                         }
                     }
@@ -368,6 +390,19 @@ else
 
     private MovieProfile? _profile;
     private bool _isLoading;
+
+    private static string DetermineSupportTone(int score) => score switch
+    {
+        > 0 => "positive",
+        < 0 => "negative",
+        _ => "neutral"
+    };
+
+    private static string FormatSupportScore(int score) =>
+        score > 0 ? $"+{score}" : score.ToString(CultureInfo.InvariantCulture);
+
+    private static string FormatCount(int value) =>
+        value.ToString("N0", CultureInfo.InvariantCulture);
 
     protected override async Task OnParametersSetAsync()
     {
