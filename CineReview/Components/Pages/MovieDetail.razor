@@ -1,4 +1,7 @@
+@rendermode InteractiveServer
+
 @page "/movies/{MovieId:int}"
+@using System.Collections.Generic
 @using System.Globalization
 @using System.Linq
 @using CineReview.Components.Shared
@@ -81,7 +84,7 @@ else
                         }
                         <div class="detail-hero__actions d-flex flex-column gap-2 mb-4">
                             <a class="btn btn-primary btn-glow w-100" href="#tickets">Mua vé ngay</a>
-                            <a class="btn btn-ghost w-100" href="#reviews">Viết review</a>
+                            <button type="button" class="btn btn-ghost w-100" @onclick="OpenReviewSheet">Viết review</button>
                         </div>
                         <div class="detail-hero__mobile-meta">
                             <div class="detail-hero__meta-chip">
@@ -138,7 +141,7 @@ else
                         }
                         <div class="detail-hero__actions d-flex flex-wrap gap-3 mb-4">
                             <a class="btn btn-primary btn-glow" href="#tickets">Mua vé ngay</a>
-                            <a class="btn btn-ghost" href="#reviews">Viết review</a>
+                            <button type="button" class="btn btn-ghost" @onclick="OpenReviewSheet">Viết review</button>
                         </div>
                         <div class="detail-hero__meta">
                             <div>
@@ -381,6 +384,152 @@ else
                 }
             </div>
         </section>
+
+        @if (_isReviewSheetOpen)
+        {
+            <div class="review-layer" role="dialog" aria-modal="true" aria-labelledby="reviewSheetTitle">
+                <div class="review-layer__backdrop" @onclick="CloseReviewSheet"></div>
+                <section class="review-sheet" @onclick:stopPropagation>
+                    <header class="review-sheet__header">
+                        <div>
+                            <p class="review-sheet__eyebrow">Viết review</p>
+                            <h3 id="reviewSheetTitle">Chia sẻ cảm nhận của bạn</h3>
+                            <p class="review-sheet__intro">Chọn nhanh bằng tag để review hiển thị ngay hoặc nhập nội dung chi tiết (sẽ được duyệt trước khi lên trang).</p>
+                        </div>
+                        <button type="button" class="btn btn-ghost btn-sm" @onclick="CloseReviewSheet">Đóng</button>
+                    </header>
+                    <div class="review-sheet__body">
+                        <div class="review-sheet__mode-switch" role="tablist">
+                            <button type="button" role="tab" class="review-mode-button @( _reviewMode == ReviewModes.Template ? "is-active" : string.Empty)" @onclick="() => SwitchReviewMode(ReviewModes.Template)">Theo tag có sẵn</button>
+                            <button type="button" role="tab" class="review-mode-button @( _reviewMode == ReviewModes.Freeform ? "is-active" : string.Empty)" @onclick="() => SwitchReviewMode(ReviewModes.Freeform)">Viết tự do</button>
+                        </div>
+
+                        @if (_reviewMode == ReviewModes.Template)
+                        {
+                            <div class="review-sheet__section">
+                                <label class="form-label" for="reviewCategory">Chủ đề chính</label>
+                                <select id="reviewCategory" class="form-select" @bind="_selectedTemplateCategory" @bind:event="onchange" @bind:after="OnTemplateCategoryChanged">
+                                    <option value="" disabled hidden>Chọn chủ đề</option>
+                                    @foreach (var category in TemplateCategories)
+                                    {
+                                        <option value="@category">@category</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="review-sheet__section">
+                                <label class="form-label" for="reviewTag">Đánh giá cụ thể</label>
+                                <select id="reviewTag" class="form-select" @bind="_selectedTemplateTag" @bind:event="onchange" disabled="@string.IsNullOrWhiteSpace(_selectedTemplateCategory)">
+                                    <option value="" disabled hidden>Chọn nhận xét</option>
+                                    @foreach (var tag in TemplateTags)
+                                    {
+                                        <option value="@tag">@tag</option>
+                                    }
+                                </select>
+                                <div class="review-sheet__hint">Review dạng tag sẽ hiển thị ngay sau khi gửi.</div>
+                            </div>
+
+                            <div class="review-sheet__section">
+                                <label class="form-label" for="reviewNote">Ghi chú thêm (không bắt buộc)</label>
+                                <textarea id="reviewNote" class="form-control" rows="3" placeholder="Ghi thêm cảm nhận ngắn gọn" @bind="_structuredNote"></textarea>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="review-sheet__section">
+                                <label class="form-label" for="freeformReview">Chia sẻ chi tiết</label>
+                                <textarea id="freeformReview" class="form-control" rows="6" placeholder="Hãy kể rõ trải nghiệm rạp, cảm xúc sau khi xem…" @bind="_freeformReview"></textarea>
+                                <div class="review-sheet__hint review-sheet__hint--warning">Review bằng chữ sẽ được đội ngũ duyệt trước khi hiển thị.</div>
+                            </div>
+                        }
+
+                        <div class="form-check review-sheet__simulate">
+                            <input class="form-check-input" type="checkbox" id="simulateFailure" @bind="_simulateFailure" />
+                            <label class="form-check-label" for="simulateFailure">Giả lập lỗi khi gửi (dành cho kiểm thử UI)</label>
+                        </div>
+                    </div>
+                    <footer class="review-sheet__footer">
+                        <button type="button" class="btn btn-ghost" @onclick="CloseReviewSheet">Huỷ</button>
+                        <button type="button" class="btn btn-primary" disabled="@(!CanSubmitReview || _isSubmittingReview)" @onclick="RequestSubmit">Gửi review</button>
+                    </footer>
+
+                    @if (_isSubmittingReview)
+                    {
+                        <div class="review-sheet__loader" role="status" aria-live="assertive">
+                            <div class="spinner-border text-info" role="status"></div>
+                            <span>Đang gửi review...</span>
+                        </div>
+                    }
+                </section>
+            </div>
+
+            @if (_showSubmitConfirmation)
+            {
+                <div class="review-dialog" role="alertdialog" aria-modal="true" aria-labelledby="reviewSubmitConfirmTitle">
+                    <div class="review-dialog__backdrop"></div>
+                    <div class="review-dialog__panel">
+                        <h3 id="reviewSubmitConfirmTitle">Xác nhận gửi review</h3>
+                        <p>Bạn xác nhận muốn gửi review này chứ? Hệ thống sẽ hiển thị trạng thái ngay sau khi gửi.</p>
+                        <div class="review-dialog__summary">
+                            @if (_reviewMode == ReviewModes.Template)
+                            {
+                                <ul>
+                                    <li><span>Chủ đề</span><span>@_selectedTemplateCategory</span></li>
+                                    <li><span>Nhận xét</span><span>@_selectedTemplateTag</span></li>
+                                    @if (!string.IsNullOrWhiteSpace(_structuredNote))
+                                    {
+                                        <li><span>Ghi chú</span><span>@_structuredNote</span></li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                var preview = _freeformReview.Length > 140 ? _freeformReview[..140] + "…" : _freeformReview;
+                                <p>@preview</p>
+                            }
+                        </div>
+                        <div class="review-dialog__actions">
+                            <button type="button" class="btn btn-ghost" @onclick="CancelSubmitRequest">Xem lại</button>
+                            <button type="button" class="btn btn-primary" @onclick="ConfirmSubmitAsync">Gửi ngay</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (_showStatusDialog)
+            {
+                var statusSucceeded = _lastSubmitSucceeded == true;
+                var statusIcon = statusSucceeded ? "bi-check-circle-fill" : "bi-exclamation-octagon-fill";
+                var statusTitle = statusSucceeded ? "Gửi review thành công" : "Không thể gửi review";
+                var statusDescription = statusSucceeded
+                    ? "Cảm ơn bạn! Review dạng tag đã được hiển thị ngay cho cộng đồng."
+                    : "Hệ thống đang gặp sự cố giả lập. Bạn có thể thử gửi lại hoặc kiểm tra nội dung trước khi thử lại.";
+                <div class="review-dialog" role="alertdialog" aria-modal="true" aria-labelledby="reviewStatusTitle">
+                    <div class="review-dialog__backdrop"></div>
+                    <div class="review-dialog__panel">
+                        <div class="review-dialog__status">
+                            <i class="@statusIcon review-dialog__status-icon @(statusSucceeded ? "review-dialog__status-icon--success" : "review-dialog__status-icon--error")"></i>
+                            <div>
+                                <h3 id="reviewStatusTitle">@statusTitle</h3>
+                                <p>@statusDescription</p>
+                            </div>
+                        </div>
+                        <div class="review-dialog__actions">
+                            @if (statusSucceeded)
+                            {
+                                <button type="button" class="btn btn-ghost" @onclick="StartAnotherReview">Viết thêm review</button>
+                                <button type="button" class="btn btn-primary" @onclick="CloseStatusDialog">Hoàn tất</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-ghost" @onclick="CloseStatusDialog">Đóng</button>
+                                <button type="button" class="btn btn-primary" @onclick="RetrySubmit">Thử lại</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
     </article>
 }
 
@@ -390,6 +539,154 @@ else
 
     private MovieProfile? _profile;
     private bool _isLoading;
+
+    private bool _isReviewSheetOpen;
+    private bool _showSubmitConfirmation;
+    private bool _isSubmittingReview;
+    private bool _showStatusDialog;
+    private bool? _lastSubmitSucceeded;
+    private string _reviewMode = ReviewModes.Template;
+    private string _selectedTemplateCategory = string.Empty;
+    private string _selectedTemplateTag = string.Empty;
+    private string _structuredNote = string.Empty;
+    private string _freeformReview = string.Empty;
+    private bool _simulateFailure;
+
+    private static readonly IReadOnlyDictionary<string, string[]> ReviewTagCatalog = new Dictionary<string, string[]>
+    {
+        ["Nội dung phim"] = new[] { "Thiếu chiều sâu", "Cốt truyện khó hiểu", "Nhịp phim hợp lý", "Plot twist bất ngờ" },
+        ["Diễn xuất"] = new[] { "Diễn xuất ấn tượng", "Chemistry chưa tốt", "Vai phụ nổi bật", "Lời thoại khiên cưỡng" },
+        ["Âm thanh & hình ảnh"] = new[] { "Âm thanh sống động", "Nhạc phim chưa đắt", "Kỹ xảo mãn nhãn", "Chuyển cảnh chưa mượt" },
+        ["Trải nghiệm rạp"] = new[] { "Màn chiếu rõ nét", "Ghế ngồi chưa thoải mái", "Dịch vụ tốt", "Không khí sôi động" }
+    };
+
+    private static class ReviewModes
+    {
+        public const string Template = "template";
+        public const string Freeform = "freeform";
+    }
+
+    private IEnumerable<string> TemplateCategories => ReviewTagCatalog.Keys;
+
+    private IEnumerable<string> TemplateTags =>
+        string.IsNullOrWhiteSpace(_selectedTemplateCategory)
+            ? Enumerable.Empty<string>()
+            : ReviewTagCatalog[_selectedTemplateCategory];
+
+    private bool CanSubmitReview =>
+        _reviewMode == ReviewModes.Template
+            ? !string.IsNullOrWhiteSpace(_selectedTemplateCategory) && !string.IsNullOrWhiteSpace(_selectedTemplateTag)
+            : !string.IsNullOrWhiteSpace(_freeformReview);
+
+    private void OpenReviewSheet()
+    {
+        if (_profile is null)
+        {
+            return;
+        }
+
+        _isReviewSheetOpen = true;
+    }
+
+    private void CloseReviewSheet()
+    {
+        _isReviewSheetOpen = false;
+        _showSubmitConfirmation = false;
+        _isSubmittingReview = false;
+        _showStatusDialog = false;
+        _lastSubmitSucceeded = null;
+        ResetReviewForm();
+    }
+
+    private void SwitchReviewMode(string mode)
+    {
+        if (_reviewMode == mode)
+        {
+            return;
+        }
+
+        _reviewMode = mode;
+
+        if (mode == ReviewModes.Template)
+        {
+            _freeformReview = string.Empty;
+        }
+        else
+        {
+            _selectedTemplateCategory = string.Empty;
+            _selectedTemplateTag = string.Empty;
+            _structuredNote = string.Empty;
+        }
+    }
+
+    private void OnTemplateCategoryChanged()
+    {
+        _selectedTemplateTag = string.Empty;
+    }
+
+    private void RequestSubmit()
+    {
+        if (!CanSubmitReview || _isSubmittingReview)
+        {
+            return;
+        }
+
+        _showSubmitConfirmation = true;
+    }
+
+    private async Task ConfirmSubmitAsync()
+    {
+        _showSubmitConfirmation = false;
+        _isSubmittingReview = true;
+
+        // Simulate network latency without hitting a backend API.
+        await Task.Delay(1500);
+
+        _isSubmittingReview = false;
+        _lastSubmitSucceeded = !_simulateFailure;
+        _showStatusDialog = true;
+    }
+
+    private void CancelSubmitRequest()
+    {
+        _showSubmitConfirmation = false;
+    }
+
+    private void CloseStatusDialog()
+    {
+        if (_lastSubmitSucceeded == true)
+        {
+            CloseReviewSheet();
+            return;
+        }
+
+        _showStatusDialog = false;
+        _lastSubmitSucceeded = null;
+    }
+
+    private void RetrySubmit()
+    {
+        _showStatusDialog = false;
+        _lastSubmitSucceeded = null;
+        _showSubmitConfirmation = true;
+    }
+
+    private void StartAnotherReview()
+    {
+        _showStatusDialog = false;
+        _lastSubmitSucceeded = null;
+        ResetReviewForm();
+    }
+
+    private void ResetReviewForm()
+    {
+        _reviewMode = ReviewModes.Template;
+        _selectedTemplateCategory = string.Empty;
+        _selectedTemplateTag = string.Empty;
+        _structuredNote = string.Empty;
+        _freeformReview = string.Empty;
+        _simulateFailure = false;
+    }
 
     private static string DetermineSupportTone(int score) => score switch
     {
