@@ -48,23 +48,23 @@ public static class IdentityServiceExtensions
             options.ClientSecret = config.GetValue<string>("Authentication:Google:ClientSecret")!;
         });
 
-        // services.AddMassTransit(x =>
-        // {
-        //     x.UsingRabbitMq((context, cfg) =>
-        //     {
-        //         cfg.Host(config.GetSection("RabitMQSettings").GetValue<string>("Hostname"), 5671, config.GetSection("RabitMQSettings").GetValue<string>("VHost"), h =>
-        //         {
-        //             h.Username(config.GetSection("RabitMQSettings").GetValue<string>("Username")!);
-        //             h.Password(config.GetSection("RabitMQSettings").GetValue<string>("Password")!);
-        //             h.UseSsl(s =>
-        //             {
-        //                 s.Protocol = SslProtocols.Tls12;
-        //             });
-        //         });
+        services.AddMassTransit(x =>
+        {
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                cfg.Host(config.GetSection("RabitMQSettings").GetValue<string>("Hostname"), 5671, config.GetSection("RabitMQSettings").GetValue<string>("VHost"), h =>
+                {
+                    h.Username(config.GetSection("RabitMQSettings").GetValue<string>("Username")!);
+                    h.Password(config.GetSection("RabitMQSettings").GetValue<string>("Password")!);
+                    h.UseSsl(s =>
+                    {
+                        s.Protocol = SslProtocols.Tls12;
+                    });
+                });
 
-        //         cfg.ConfigureEndpoints(context);
-        //     });
-        // });
+                cfg.ConfigureEndpoints(context);
+            });
+        });
 
         // Inject Services
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -73,7 +73,7 @@ public static class IdentityServiceExtensions
         services.AddScoped<IUserService, UserService>();
 
         // Inject Publisher
-        // services.AddScoped<ISyncUserPortalPublisher, SyncUserPortalPublisher>();
+        services.AddScoped<ISyncUserPortalPublisher, SyncUserPortalPublisher>();
 
         return services;
     }

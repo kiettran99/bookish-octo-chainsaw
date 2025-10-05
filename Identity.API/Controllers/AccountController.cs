@@ -20,15 +20,18 @@ public class AccountController : ControllerBase
     private readonly IAccountService _accountService;
     private readonly IJwtService _jwtService;
     private readonly UserManager<User> _userManager;
+    private readonly IConfiguration _configuration;
 
     public AccountController(
         IAccountService accountService,
         IJwtService jwtService,
-        UserManager<User> userManager)
+        UserManager<User> userManager,
+        IConfiguration configuration)
     {
         _accountService = accountService;
         _jwtService = jwtService;
         _userManager = userManager;
+        _configuration = configuration;
     }
 
     [HttpPost("client-authenticate")]
@@ -42,12 +45,21 @@ public class AccountController : ControllerBase
     }
 
     [HttpGet("authenticate")]
-    public IActionResult Login()
+    public IActionResult Login([FromQuery] string? redirectClientUrl = null)
     {
+        // Đọc baseUrl từ cấu hình
+        var baseUrl = _configuration["AppSettings:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host.Value}";
         var properties = new AuthenticationProperties
         {
-            RedirectUri = Url.Action("Callback", "Account")
+            RedirectUri = $"{baseUrl}/api/account/signin-google"
         };
+
+        // Truyền redirectClientUrl vào state để Google trả lại trong callback
+        if (!string.IsNullOrEmpty(redirectClientUrl))
+        {
+            properties.Items["redirect_client_url"] = redirectClientUrl;
+        }
+
         return Challenge(properties, GoogleDefaults.AuthenticationScheme);
     }
 
@@ -67,26 +79,43 @@ public class AccountController : ControllerBase
             return BadRequest("Please contact administrator to provide more information. Error Code: LN1");
         }
 
-        var user = await _userManager.FindByEmailAsync(email);
-        if (user == null)
+        // Lấy thông tin từ Google OAuth
+        var name = result.Principal.FindFirstValue(ClaimTypes.Name);
+        var givenName = result.Principal.FindFirstValue(ClaimTypes.GivenName);
+        var surname = result.Principal.FindFirstValue(ClaimTypes.Surname);
+        var picture = result.Principal.FindFirstValue("picture");
+        var locale = result.Principal.FindFirstValue("locale");
+        var emailVerified = result.Principal.FindFirstValue("email_verified");
+
+        // Gọi service để xử lý đăng nhập/đăng ký
+        var authResponse = await _accountService.GoogleAuthenticateAsync(new GoogleAuthenticateRequest
         {
-            return BadRequest("Please contact administrator to provide more information. Error Code: LN2");
+            Email = email,
+            Name = name,
+            GivenName = givenName,
+            FamilyName = surname,
+            Picture = picture,
+            Locale = locale,
+            EmailVerified = bool.TryParse(emailVerified, out var verified) && verified
+        });
+
+        if (!authResponse.IsSuccess)
+        {
+            return BadRequest(authResponse.ErrorMessage);
         }
 
-        // Check user should have Partner or Administrator role to can login
-        var roles = await _userManager.GetRolesAsync(user);
+        var jwtToken = authResponse.Data?.JwtToken;
 
-        if (!roles.Contains(ERoles.Partner.ToString()) && !roles.Contains(ERoles.Administrator.ToString()))
-        {
-            return BadRequest("Please contact administrator to provide more information. Error Code: LN3");
-        }
+        // Lấy redirectClientUrl từ state (nếu client đã truyền lên)
+        string? redirectClientUrl = null;
+        result.Properties?.Items.TryGetValue("redirect_client_url", out redirectClientUrl);
 
-        // Token expries in 30 days
-        var expirationInMinutes = 60 * 24 * 30;
-        var jwtToken = _jwtService.GenerateJwtToken(user, expirationInMinutes);
-
-        var clientUrl = "http://localhost:3001/validate";
+        // Nếu không có redirectClientUrl từ client, dùng mặc định
+        var clientUrl = !string.IsNullOrEmpty(redirectClientUrl)
+            ? redirectClientUrl
+            : "http://localhost:3001/validate";
         // var clientUrl = "https://kietdev1.github.io/itp-cms/validate";
+
         return Redirect($"{clientUrl}?token={jwtToken}");
     }
 
