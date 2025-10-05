@@ -43,7 +43,7 @@ app.UseMiddleware<JwtMiddleware>();
 app.UseAuthorization();
 
 app.UseCors(x => x
-    .SetIsOriginAllowed(origin => origin.Contains("localhost") || origin.Contains("127.0.0.1") || origin.EndsWith(".github.io") || origin.EndsWith(".codegota.me"))
+    .SetIsOriginAllowed(origin => origin.Contains("localhost") || origin.Contains("127.0.0.1") || origin.EndsWith(".github.io") || origin.EndsWith(".codegota.me") || origin.EndsWith(".app.github.dev"))
     .AllowAnyMethod()
     .AllowAnyHeader()
     .AllowCredentials());

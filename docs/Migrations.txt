@@ -5,3 +5,5 @@ dotnet ef database update --project Identity.API.csproj --startup-project Identi
 CineReview.API
 dotnet ef migrations add InitialCreate -p CineReview.Infrastructure.csproj -c ApplicationDbContext -s ../CineReview.API/CineReview.API.csproj --verbose
 dotnet ef database update -p CineReview.Infrastructure.csproj -s ../CineReview.API/CineReview.API.csproj --verbose
+
+sudo fuser -k 5123/tcp

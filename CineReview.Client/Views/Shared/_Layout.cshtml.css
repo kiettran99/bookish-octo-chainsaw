@@ -1,6 +1,14 @@
-﻿.app-shell {
+﻿.btn-google span {
+  color: #fff !important;
+}
+.app-shell {
   background: radial-gradient(circle at top, rgba(12, 17, 31, 0.95) 0%, #070b15 60%, #03040a 100%);
   color: #f1f5f9;
+}
+
+.app-shell header {
+  position: relative;
+  z-index: 1050;
 }
 
 .app-shell main {
@@ -16,6 +24,8 @@
   background: rgba(7, 11, 22, 0.78);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  position: relative;
+  z-index: 1050;
 }
 
 .navbar-brand {
@@ -89,4 +99,70 @@
   .nav-search {
     width: 100%;
   }
+}
+
+/* Modal auth-modal UI đồng bộ và hiệu ứng hover */
+.auth-modal .modal-content {
+  background: #10172a;
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  transition: box-shadow 0.2s;
+}
+
+.auth-modal .auth-badge {
+  background: #1e293b;
+  color: #38bdf8;
+  border-radius: 0.75rem;
+  padding: 0.25rem 1rem;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  display: inline-block;
+}
+
+/* Nút Google đặc trưng */
+
+.btn-google {
+  background: rgba(30, 41, 59, 0.92); /* xám đậm, hài hòa UI tối */
+  color: #e2e8f0; /* chữ sáng */
+  border: 1px solid #4285f4; /* viền xanh Google nhẹ */
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(30, 41, 59, 0.18);
+  transition: background 0.18s, box-shadow 0.18s, color 0.18s, border-color 0.18s;
+}
+
+.btn-google:hover,
+.btn-google:focus {
+  background: rgba(30, 41, 59, 0.98); /* tối hơn khi hover */
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(30, 41, 59, 0.28);
+  border-color: #4285f4;
+}
+
+.btn-google img {
+  background: transparent;
+  border-radius: 50%;
+}
+
+.btn-google .bi-google {
+  color: #4285f4;
+  font-size: 1.2em;
+  margin-right: 0.5em;
+}
+
+/* Nút "Để sau" giữ style hiện tại */
+.auth-modal .btn-outline-light {
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+
+.auth-modal .btn-outline-light:hover,
+.auth-modal .btn-outline-light:focus {
+  background: rgba(56, 189, 248, 0.08);
+  color: #38bdf8;
+  border-color: #38bdf8;
 }
