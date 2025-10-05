@@ -2,6 +2,7 @@ using System.Text.Json;
 using Common.Models;
 using Identity.API.Extensions;
 using Identity.API.Middlewares;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,6 +27,13 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = _ => new ValidateModelActionResult();
 });
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
+    // Nếu muốn chặt chẽ hơn, hãy cấu hình KnownNetworks hoặc KnownProxies là IP của Cloudflare
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var app = builder.Build();
 
@@ -37,6 +45,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseForwardedHeaders();
 
 app.UseAuthentication();
 app.UseMiddleware<JwtMiddleware>();
