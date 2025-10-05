@@ -428,7 +428,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         return new MovieSummary(
             Id: detail.Id,
             Title: detail.Title ?? detail.OriginalTitle ?? "Tên phim chưa cập nhật",
-            Tagline: string.IsNullOrWhiteSpace(detail.Tagline) ? (detail.Overview ?? string.Empty) : detail.Tagline,
+            Tagline: detail.Tagline ?? string.Empty,
             PosterUrl: ResolveImageUrl(detail.PosterPath, _options.PosterSize),
             BackdropUrl: ResolveImageUrl(detail.BackdropPath, _options.BackdropSize),
             ReleaseDate: releaseDate,

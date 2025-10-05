@@ -82,7 +82,7 @@ else
                         }
                         <div class="detail-hero__actions d-flex flex-column gap-2 mb-4">
                             <a class="btn btn-primary btn-glow w-100" href="#tickets">Mua vé ngay</a>
-                            <a class="btn btn-ghost w-100" href="#reviews">Viết review</a>
+                            <button type="button" class="btn btn-ghost w-100" data-review-open>Viết review</button>
                         </div>
                         <div class="detail-hero__mobile-meta">
                             <div class="detail-hero__meta-chip">
@@ -139,7 +139,7 @@ else
                         }
                         <div class="detail-hero__actions d-flex flex-wrap gap-3 mb-4">
                             <a class="btn btn-primary btn-glow" href="#tickets">Mua vé ngay</a>
-                            <a class="btn btn-ghost" href="#reviews">Viết review</a>
+                            <button type="button" class="btn btn-ghost" data-review-open>Viết review</button>
                         </div>
                         <div class="detail-hero__meta">
                             <div>
@@ -382,6 +382,7 @@ else
             </div>
         </section>
     </article>
+    @await Html.PartialAsync("_MovieReviewSheet")
 }
 
 @functions {
