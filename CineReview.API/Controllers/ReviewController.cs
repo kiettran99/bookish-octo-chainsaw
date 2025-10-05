@@ -165,6 +165,91 @@ public class ReviewController : CommonController
     }
 
     /// <summary>
+    /// Check if user has reviewed a specific movie (returns the review if exists)
+    /// </summary>
+    [HttpGet("user/{userId}/movie/{tmdbMovieId}")]
+    public async Task<IActionResult> GetUserMovieReview(int userId, int tmdbMovieId)
+    {
+        var request = new ReviewListRequestModel
+        {
+            UserId = userId,
+            TmdbMovieId = tmdbMovieId,
+            Page = 1,
+            PageSize = 1
+        };
+
+        var response = await _reviewService.GetReviewsAsync(request);
+        
+        if (!response.IsSuccess)
+        {
+            return BadRequest(response);
+        }
+
+        // Return null if no review found
+        if (response.Data == null || !response.Data.Any())
+        {
+            return Ok(new
+            {
+                isSuccess = true,
+                data = (ReviewResponseModel?)null
+            });
+        }
+
+        // Return the first (and should be only) review
+        return Ok(new
+        {
+            isSuccess = true,
+            data = response.Data.First()
+        });
+    }
+
+    /// <summary>
+    /// Check if current logged-in user has reviewed a specific movie (returns the review if exists)
+    /// </summary>
+    [HttpGet("my-review/movie/{tmdbMovieId}")]
+    [Authorize]
+    public async Task<IActionResult> GetMyMovieReview(int tmdbMovieId)
+    {
+        var userId = GetUserIdByToken();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var request = new ReviewListRequestModel
+        {
+            UserId = userId.Value,
+            TmdbMovieId = tmdbMovieId,
+            Page = 1,
+            PageSize = 1
+        };
+
+        var response = await _reviewService.GetReviewsAsync(request);
+        
+        if (!response.IsSuccess)
+        {
+            return BadRequest(response);
+        }
+
+        // Return null if no review found
+        if (response.Data == null || !response.Data.Any())
+        {
+            return Ok(new
+            {
+                isSuccess = true,
+                data = (ReviewResponseModel?)null
+            });
+        }
+
+        // Return the first (and should be only) review
+        return Ok(new
+        {
+            isSuccess = true,
+            data = response.Data.First()
+        });
+    }
+
+    /// <summary>
     /// Rate a review as fair or unfair
     /// </summary>
     [HttpPost("rate")]

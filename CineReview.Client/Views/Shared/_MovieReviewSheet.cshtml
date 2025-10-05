@@ -1,5 +1,6 @@
 @using System.Collections.Generic
 @using System.Text.Json
+@inject IConfiguration Configuration
 
 @{
     var reviewTagCatalog = new Dictionary<string, string[]>
@@ -10,9 +11,10 @@
         ["Trải nghiệm rạp"] = new[] { "Màn chiếu rõ nét", "Ghế ngồi chưa thoải mái", "Dịch vụ tốt", "Không khí sôi động" }
     };
     var catalogJson = JsonSerializer.Serialize(reviewTagCatalog);
+    var apiBaseUrl = Configuration["CineReviewApi:BaseUrl"] ?? "";
 }
 
-<div data-review-sheet-root data-review-catalog='@Html.Raw(catalogJson)'>
+<div data-review-sheet-root data-review-catalog='@Html.Raw(catalogJson)' data-api-base-url="@apiBaseUrl">
     <div class="review-layer" data-review-layer hidden>
         <div class="review-layer__backdrop" data-review-close></div>
     <section class="review-sheet">
@@ -49,20 +51,10 @@
                     <div class="review-sheet__hint">Review dạng tag sẽ hiển thị ngay sau khi gửi.</div>
                 </div>
 
-                <div class="review-sheet__section" data-review-template-section>
-                    <label class="form-label" for="reviewNote">Ghi chú thêm (không bắt buộc)</label>
-                    <textarea id="reviewNote" class="form-control" rows="3" placeholder="Ghi thêm cảm nhận ngắn gọn" data-review-note></textarea>
-                </div>
-
                 <div class="review-sheet__section" data-review-freeform-section hidden>
                     <label class="form-label" for="freeformReview">Chia sẻ chi tiết</label>
                     <textarea id="freeformReview" class="form-control" rows="6" placeholder="Hãy kể rõ trải nghiệm rạp, cảm xúc sau khi xem…" data-review-freeform></textarea>
                     <div class="review-sheet__hint review-sheet__hint--warning">Review bằng chữ sẽ được đội ngũ duyệt trước khi hiển thị.</div>
-                </div>
-
-                <div class="form-check review-sheet__simulate">
-                    <input class="form-check-input" type="checkbox" id="simulateFailure" data-review-simulate />
-                    <label class="form-check-label" for="simulateFailure">Giả lập lỗi khi gửi (dành cho kiểm thử UI)</label>
                 </div>
             </div>
             <footer class="review-sheet__footer">
@@ -86,7 +78,6 @@
                 <ul data-review-summary-template>
                     <li><span>Chủ đề</span><span data-summary-category></span></li>
                     <li><span>Nhận xét</span><span data-summary-tag></span></li>
-                    <li data-summary-note hidden><span>Ghi chú</span><span data-summary-note-text></span></li>
                 </ul>
                 <p data-review-summary-freeform hidden></p>
             </div>
@@ -114,6 +105,47 @@
             <div class="review-dialog__actions" data-review-status-failure hidden>
                 <button type="button" class="btn btn-ghost" data-review-retry>Thử lại</button>
                 <button type="button" class="btn btn-primary" data-review-dismiss-status>Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dialog: Your Review -->
+    <div class="review-dialog" data-your-review-dialog hidden role="dialog" aria-modal="true" aria-labelledby="yourReviewTitle">
+        <div class="review-dialog__backdrop" data-your-review-close></div>
+        <div class="review-dialog__panel">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h3 id="yourReviewTitle">Review của bạn</h3>
+                <button type="button" class="btn-close" data-your-review-close aria-label="Đóng"></button>
+            </div>
+            
+            <div class="review-dialog__summary">
+                <div class="mb-3">
+                    <span class="badge bg-info" data-your-review-type></span>
+                    <span class="badge bg-secondary ms-2" data-your-review-status></span>
+                </div>
+                <div class="mb-3">
+                    <div class="fw-semibold text-white mb-1">Nội dung:</div>
+                    <p class="text-secondary mb-0" data-your-review-content></p>
+                </div>
+                <div class="mb-3">
+                    <div class="fw-semibold text-white mb-1">Đánh giá:</div>
+                    <div class="text-warning" data-your-review-rating></div>
+                </div>
+                <div class="mb-3">
+                    <div class="fw-semibold text-white mb-1">Tương tác:</div>
+                    <div class="d-flex gap-3 text-secondary">
+                        <span><i class="bi bi-hand-thumbs-up"></i> <span data-your-review-fair>0</span> công tâm</span>
+                        <span><i class="bi bi-hand-thumbs-down"></i> <span data-your-review-unfair">0</span> không công tâm</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="fw-semibold text-white mb-1">Điểm đánh giá:</div>
+                    <div class="text-info fs-5" data-your-review-score>0.0</div>
+                </div>
+            </div>
+
+            <div class="review-dialog__actions">
+                <button type="button" class="btn btn-secondary" data-your-review-close>Đóng</button>
             </div>
         </div>
     </div>

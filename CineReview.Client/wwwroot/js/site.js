@@ -17,17 +17,13 @@
 			this.submitButton = root.querySelector("[data-review-submit]");
 			this.categorySelect = root.querySelector("[data-review-category]");
 			this.tagSelect = root.querySelector("[data-review-tag]");
-			this.noteInput = root.querySelector("[data-review-note]");
 			this.freeformInput = root.querySelector("[data-review-freeform]");
-			this.simulateCheckbox = root.querySelector("[data-review-simulate]");
 			this.modeButtons = root.querySelectorAll("[data-review-mode]");
 			this.templateSections = root.querySelectorAll("[data-review-template-section]");
 			this.freeformSections = root.querySelectorAll("[data-review-freeform-section]");
 			this.summaryTemplate = root.querySelector("[data-review-summary-template]");
 			this.summaryCategory = root.querySelector("[data-summary-category]");
 			this.summaryTag = root.querySelector("[data-summary-tag]");
-			this.summaryNoteContainer = root.querySelector("[data-summary-note]");
-			this.summaryNoteText = root.querySelector("[data-summary-note-text]");
 			this.summaryFreeform = root.querySelector("[data-review-summary-freeform]");
 			this.statusIcon = root.querySelector("[data-review-status-icon]");
 			this.statusTitle = root.querySelector("[data-review-status-title]");
@@ -115,7 +111,6 @@
 				this.updateTagOptions();
 				this.tagSelect.disabled = true;
 				this.tagSelect.selectedIndex = 0;
-				this.noteInput.value = "";
 			}
 
 			this.updateSubmitState();
@@ -161,8 +156,9 @@
 			this.confirmDialog.hidden = true;
 			this.setSubmitting(true);
 
+			// Simulate checkbox removed - use actual API call from review.js
 			window.setTimeout(() => {
-				const succeeded = !this.simulateCheckbox.checked;
+				const succeeded = true; // Default to success
 				this.setSubmitting(false);
 				this.showStatus(succeeded);
 			}, 1500);
@@ -211,16 +207,9 @@
 			if (templateMode) {
 				const category = this.categorySelect.value;
 				const tag = this.tagSelect.value;
-				const note = this.noteInput.value.trim();
 				this.summaryCategory.textContent = category;
 				this.summaryTag.textContent = tag;
-				if (note.length > 0) {
-					this.summaryNoteText.textContent = note;
-					this.summaryNoteContainer.hidden = false;
-				} else {
-					this.summaryNoteText.textContent = "";
-					this.summaryNoteContainer.hidden = true;
-				}
+				// Note input has been removed, no need to handle it
 			} else {
 				const text = this.freeformInput.value.trim();
 				const preview = text.length > 140 ? `${text.slice(0, 140)}…` : text;
@@ -246,8 +235,6 @@
 			this.templateSections.forEach(section => section.hidden = false);
 			this.freeformSections.forEach(section => section.hidden = true);
 			this.categorySelect.value = "";
-			this.noteInput.value = "";
-			this.simulateCheckbox.checked = false;
 			this.updateTagOptions();
 			this.tagSelect.disabled = true;
 			this.tagSelect.selectedIndex = 0;

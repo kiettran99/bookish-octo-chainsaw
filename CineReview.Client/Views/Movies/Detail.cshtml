@@ -82,7 +82,7 @@ else
                         }
                         <div class="detail-hero__actions d-flex flex-column gap-2 mb-4">
                             <a class="btn btn-primary btn-glow w-100" href="#tickets">Mua vé ngay</a>
-                            <button type="button" class="btn btn-ghost w-100" data-review-open>Viết review</button>
+                            <button type="button" class="btn btn-ghost w-100" data-write-review>Viết review</button>
                         </div>
                         <div class="detail-hero__mobile-meta">
                             <div class="detail-hero__meta-chip">
@@ -139,7 +139,7 @@ else
                         }
                         <div class="detail-hero__actions d-flex flex-wrap gap-3 mb-4">
                             <a class="btn btn-primary btn-glow" href="#tickets">Mua vé ngay</a>
-                            <button type="button" class="btn btn-ghost" data-review-open>Viết review</button>
+                            <button type="button" class="btn btn-ghost" data-write-review>Viết review</button>
                         </div>
                         <div class="detail-hero__meta">
                             <div>
@@ -286,72 +286,18 @@ else
         }
 
         <section class="detail-section" id="reviews">
-            <div class="container-xl">
+            <div class="container-xl" data-movie-id="@(summary?.Id ?? 0)">
                 <div class="section-header">
                     <h2 class="h3 text-white mb-0">Review từ cộng đồng</h2>
-                    <a class="btn btn-ghost btn-sm" href="#">Xem toàn bộ</a>
+                    <button type="button" class="btn btn-ghost btn-sm" data-view-all-reviews>Xem toàn bộ</button>
                 </div>
-                <div class="row g-4">
-                    @if (profile.Reviews.Any())
-                    {
-                        @foreach (var review in profile.Reviews)
-                        {
-                            var supportTone = DetermineSupportTone(review.SupportScore);
-                            var supportValue = FormatSupportScore(review.SupportScore);
-                            <div class="col-12">
-                                <article class="community-review">
-                                    <div class="community-review__support" data-tone="@supportTone">
-                                        <span class="community-review__support-value">@supportValue</span>
-                                        <span class="community-review__support-label">ủng hộ</span>
-                                    </div>
-                                    <div class="community-review__content">
-                                        <header class="community-review__header">
-                                            <div class="community-review__author">
-                                                <img src="@review.AvatarUrl" alt="Avatar @review.Author" class="community-review__avatar" loading="lazy" />
-                                                <div>
-                                                    <span class="community-review__name">@review.Author</span>
-                                                    <span class="community-review__badge">@review.BadgeLabel</span>
-                                                </div>
-                                            </div>
-                                            <div class="community-review__meta">
-                                                <span class="community-review__username">@review.Username</span>
-                                                <span class="community-review__score">@review.Rating/10</span>
-                                            </div>
-                                        </header>
-                                        <p class="community-review__excerpt">@review.Excerpt</p>
-                                        <footer class="community-review__footer">
-                                            <span>@review.CreatedAt.ToString("dd/MM/yyyy")</span>
-                                            @if (!string.IsNullOrWhiteSpace(review.Location))
-                                            {
-                                                <span class="community-review__bullet">•</span>
-                                                <span>@review.Location</span>
-                                            }
-                                            @if (review.IsTicketVerified)
-                                            {
-                                                <span class="badge chip chip--success">Đã xác thực vé</span>
-                                            }
-                                        </footer>
-                                    </div>
-                                    <div class="community-review__actions">
-                                        <button type="button" class="community-review__action community-review__action--fair">
-                                            <span class="community-review__action-label">Công tâm</span>
-                                        </button>
-                                        <button type="button" class="community-review__action community-review__action--unfair">
-                                            <span class="community-review__action-label">Không công tâm</span>
-                                        </button>
-                                    </div>
-                                </article>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="col-12">
-                            <div class="alert alert-info bg-info-subtle border-info-subtle text-info-emphasis" role="alert">
-                                Hãy là người đầu tiên viết review sau khi xác thực vé của bạn.
-                            </div>
-                        </div>
-                    }
+                <div class="row g-4" data-reviews-container>
+                    <!-- Reviews will be loaded dynamically -->
+                </div>
+                <div class="text-center py-5 d-none" data-reviews-empty>
+                    <i class="bi bi-chat-square-text text-secondary" style="font-size: 3rem;"></i>
+                    <p class="text-secondary mt-3 mb-3">Chưa có review nào cho phim này.</p>
+                    <button type="button" class="btn btn-primary" data-write-review>Viết review đầu tiên</button>
                 </div>
             </div>
         </section>

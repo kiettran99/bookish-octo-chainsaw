@@ -1,0 +1,316 @@
+/* Additional utility styles for demo */
+
+/* Write Review Button Enhancements */
+[data-write-review] {
+    position: relative;
+    overflow: hidden;
+}
+
+[data-write-review]::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+[data-write-review]:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* Section Headers Enhancement */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(129, 140, 248, 0.3);
+}
+
+.section-header h2 {
+    position: relative;
+    display: inline-block;
+}
+
+.section-header h2::after {
+    content: '';
+    position: absolute;
+    bottom: -1rem;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #818cf8, transparent);
+    border-radius: 2px;
+}
+
+/* Empty State Animation */
+[data-reviews-empty] {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Loading Skeleton for Reviews */
+.review-skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.review-skeleton__header {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.review-skeleton__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.review-skeleton__text {
+    flex: 1;
+}
+
+.review-skeleton__line {
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.review-skeleton__line--short {
+    width: 60%;
+}
+
+.review-skeleton__line--medium {
+    width: 80%;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Toast Notifications (for future use) */
+.toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1070;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.toast {
+    min-width: 320px;
+    background: linear-gradient(135deg, #1a1d29, #0f1117);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    animation: slideInRight 0.3s ease-out;
+}
+
+.toast--success {
+    border-left: 4px solid #10b981;
+}
+
+.toast--error {
+    border-left: 4px solid #ef4444;
+}
+
+.toast--info {
+    border-left: 4px solid #3b82f6;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Hover Effects for Review Cards */
+.review-card__avatar {
+    position: relative;
+    transition: transform 0.3s ease;
+}
+
+.review-card:hover .review-card__avatar {
+    transform: scale(1.1);
+}
+
+.review-card__avatar::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.review-card:hover .review-card__avatar::after {
+    opacity: 1;
+}
+
+/* Button Ripple Effect */
+.btn-primary,
+.btn-ghost {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::after,
+.btn-ghost::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s, height 0.4s, opacity 0.4s;
+    opacity: 0;
+}
+
+.btn-primary:active::after,
+.btn-ghost:active::after {
+    width: 200px;
+    height: 200px;
+    opacity: 0.3;
+}
+
+/* Focus Visible for Accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid #818cf8;
+    outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+    .review-layer,
+    .review-dialog,
+    #allReviewsModal,
+    [data-write-review],
+    [data-view-all-reviews] {
+        display: none !important;
+    }
+
+    .review-card {
+        page-break-inside: avoid;
+        border: 1px solid #ccc;
+        background: white;
+        color: black;
+    }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .review-card {
+        border: 2px solid currentColor;
+    }
+
+    .review-sheet {
+        border: 2px solid currentColor;
+    }
+
+    .btn-primary {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .review-layer__backdrop,
+    .review-sheet,
+    .review-dialog__panel {
+        animation: none;
+    }
+}
+
+/* Dark Mode Enhancements */
+@media (prefers-color-scheme: dark) {
+    .form-select option,
+    .form-control {
+        background-color: #1a1d29;
+        color: #e5e7eb;
+    }
+}
+
+/* Mobile Safari Fixes */
+@supports (-webkit-touch-callout: none) {
+    .review-sheet {
+        max-height: -webkit-fill-available;
+    }
+
+    .modal-body {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Firefox-specific fixes */
+@-moz-document url-prefix() {
+    .review-sheet__body {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(129, 140, 248, 0.5) transparent;
+    }
+}
+
+/* Edge-specific fixes */
+@supports (-ms-ime-align: auto) {
+    .review-card {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+}
