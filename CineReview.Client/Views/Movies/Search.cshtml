@@ -1,0 +1,240 @@
+@using System.Collections.Generic
+@using System.Globalization
+@using CineReview.Client.Features.Movies
+@model MovieSearchViewModel?
+
+@{
+    ViewData["Title"] = "Tìm phim";
+    var loadError = ViewData["LoadError"] as string;
+    var model = Model;
+    var criteria = model?.Criteria;
+    var result = model?.Result;
+}
+
+@if (!string.IsNullOrWhiteSpace(loadError) || (model?.HasError ?? false))
+{
+    var message = !string.IsNullOrWhiteSpace(loadError)
+        ? loadError!
+        : model?.ErrorMessage ?? "Không thể tải dữ liệu tìm kiếm.";
+    <section class="container-xl py-5 my-5 text-center">
+        <div class="alert alert-danger bg-danger-subtle border-danger-subtle text-danger-emphasis" role="alert">
+            @message
+        </div>
+        <a class="btn btn-outline-info mt-3" href="@Url.Action("Search", "Movies")">Thử lại</a>
+    </section>
+}
+else if (model is null || criteria is null)
+{
+    <section class="container-xl py-5 my-5 text-center">
+        <div class="spinner-border text-info" role="status"></div>
+    </section>
+}
+else if (result is null)
+{
+    <section class="container-xl py-5 my-5 text-center">
+        <div class="spinner-border text-info" role="status"></div>
+    </section>
+}
+else
+{
+    var searchPage = result.Page;
+    <section class="container-xl py-5 my-4">
+        <div class="row g-4">
+            <div class="col-12">
+                <aside class="filters-card rounded-4 border border-secondary-subtle p-4 shadow-sm w-100" aria-label="Bộ lọc tìm phim">
+                    <h2 class="h5 text-white mb-3">Bộ lọc</h2>
+                    <form method="get" action="@Url.Action("Search", "Movies")" class="filters-form">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label for="query" class="form-label text-secondary small">Từ khóa</label>
+                                <input type="search" id="query" name="query" class="form-control form-control-sm" value="@criteria.Query" placeholder="Tên phim, diễn viên..." maxlength="100" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="genre" class="form-label text-secondary small">Thể loại</label>
+                                <select id="genre" name="genre" class="form-select form-select-sm">
+                                    <option value="">Tất cả thể loại</option>
+                                    @foreach (var option in result.Genres)
+                                    {
+                                        var isSelected = !string.IsNullOrWhiteSpace(criteria.Genre) && string.Equals(option.Value, criteria.Genre, StringComparison.OrdinalIgnoreCase);
+                                        <option value="@option.Value" selected="@(isSelected ? "selected" : null)">@option.Label</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="from" class="form-label text-secondary small">Ngày phát hành từ</label>
+                                <input type="date" id="from" class="form-control form-control-sm" name="from" value="@FormatDate(criteria.ReleaseFrom)" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="to" class="form-label text-secondary small">Ngày phát hành đến</label>
+                                <input type="date" id="to" class="form-control form-control-sm" name="to" value="@FormatDate(criteria.ReleaseTo)" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="minScore" class="form-label text-secondary small">Điểm tối thiểu</label>
+                                <select id="minScore" name="minScore" class="form-select form-select-sm">
+                                    <option value="">Tất cả điểm</option>
+                                    @foreach (var score in GetScoreOptions())
+                                    {
+                                        var scoreValue = score.ToString("0.0", CultureInfo.InvariantCulture);
+                                        var isSelected = criteria.MinScore.HasValue && Math.Abs(criteria.MinScore.Value - score) < 0.01;
+                                        <option value="@scoreValue" selected="@(isSelected ? "selected" : null)">@scoreValue+</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="region" class="form-label text-secondary small">Quốc gia</label>
+                                <select id="region" name="region" class="form-select form-select-sm">
+                                    <option value="">Tất cả quốc gia</option>
+                                    @foreach (var regionOption in GetPopularRegions())
+                                    {
+                                        var isSelected = !string.IsNullOrWhiteSpace(criteria.Region) && string.Equals(regionOption.Value, criteria.Region, StringComparison.OrdinalIgnoreCase);
+                                        <option value="@regionOption.Value" selected="@(isSelected ? "selected" : null)">@regionOption.Label</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary btn-sm flex-fill">Tìm kiếm</button>
+                                    <a class="btn btn-outline-secondary btn-sm flex-fill" href="@Url.Action("Search", "Movies")">Xóa lọc</a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </aside>
+            </div>
+            <div class="col-12">
+                <div class="search-results-panel rounded-4 border border-secondary-subtle p-4 shadow-sm">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+                        <div>
+                            <p class="text-secondary text-uppercase small fw-semibold mb-2">Trang @searchPage.Page/@searchPage.TotalPages · @searchPage.TotalResults kết quả</p>
+                            <h1 class="display-5 fw-bold text-white mb-2">@searchPage.Title</h1>
+                            <p class="text-secondary mb-0">@searchPage.Description</p>
+                        </div>
+                        <a class="btn btn-ghost" href="@Url.Action("Index", "Home")">Quay lại trang chủ</a>
+                    </div>
+
+                    @if (searchPage.Items.Count == 0)
+                    {
+                        <div class="alert alert-info bg-info-subtle border-info-subtle text-info-emphasis" role="alert">
+                            Không tìm thấy phim nào phù hợp với tiêu chí hiện tại. Hãy thử thay đổi bộ lọc hoặc nhập từ khóa khác.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-4">
+                            @foreach (var movie in searchPage.Items)
+                            {
+                                <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                                    @await Html.PartialAsync("_MovieCard", movie)
+                                </div>
+                            }
+                        </div>
+
+                        @if (searchPage.TotalPages > 1)
+                        {
+                            <nav class="mt-5" aria-label="Phân trang kết quả tìm kiếm">
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item @(searchPage.Page <= 1 ? "disabled" : null)">
+                                        <a class="page-link" href="@BuildPageUrl(criteria, searchPage.Page - 1)" aria-label="Trang trước">&lsaquo;</a>
+                                    </li>
+                                    @foreach (var pageNumber in GetPageNumbers(searchPage.Page, searchPage.TotalPages))
+                                    {
+                                        <li class="page-item @(pageNumber == searchPage.Page ? "active" : null)">
+                                            <a class="page-link" href="@BuildPageUrl(criteria, pageNumber)">@pageNumber</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(searchPage.Page >= searchPage.TotalPages ? "disabled" : null)">
+                                        <a class="page-link" href="@BuildPageUrl(criteria, searchPage.Page + 1)" aria-label="Trang sau">&rsaquo;</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+@functions {
+    private static string? FormatDate(DateTime? value) => value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    private static IEnumerable<double> GetScoreOptions()
+    {
+        for (var score = 0.5; score <= 10.0; score += 0.5)
+        {
+            yield return score;
+        }
+    }
+
+    private static IEnumerable<(string Value, string Label)> GetPopularRegions()
+    {
+        return new[]
+        {
+            ("VN", "Việt Nam"),
+            ("US", "Hoa Kỳ"),
+            ("KR", "Hàn Quốc"),
+            ("JP", "Nhật Bản"),
+            ("CN", "Trung Quốc"),
+            ("GB", "Vương quốc Anh"),
+            ("FR", "Pháp"),
+            ("IN", "Ấn Độ"),
+            ("TH", "Thái Lan"),
+            ("HK", "Hồng Kông")
+        };
+    }
+
+    private string BuildPageUrl(MovieSearchRequest criteria, int page)
+    {
+        var routeValues = new Dictionary<string, object?>();
+
+        if (!string.IsNullOrWhiteSpace(criteria.Query))
+        {
+            routeValues["query"] = criteria.Query;
+        }
+
+        if (!string.IsNullOrWhiteSpace(criteria.Genre))
+        {
+            routeValues["genre"] = criteria.Genre;
+        }
+
+        if (criteria.ReleaseFrom.HasValue)
+        {
+            routeValues["from"] = criteria.ReleaseFrom.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        if (criteria.ReleaseTo.HasValue)
+        {
+            routeValues["to"] = criteria.ReleaseTo.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        if (criteria.MinScore.HasValue)
+        {
+            routeValues["minScore"] = criteria.MinScore.Value.ToString("0.0", CultureInfo.InvariantCulture);
+        }
+
+        if (!string.IsNullOrWhiteSpace(criteria.Region))
+        {
+            routeValues["region"] = criteria.Region;
+        }
+
+        if (page > 1)
+        {
+            routeValues["page"] = page;
+        }
+
+        return Url.Action("Search", "Movies", routeValues) ?? string.Empty;
+    }
+
+    private static IEnumerable<int> GetPageNumbers(int current, int total)
+    {
+        const int window = 5;
+        var start = Math.Max(1, current - 2);
+        var end = Math.Min(total, start + window - 1);
+        start = Math.Max(1, end - window + 1);
+
+        for (var page = start; page <= end; page++)
+        {
+            yield return page;
+        }
+    }
+}

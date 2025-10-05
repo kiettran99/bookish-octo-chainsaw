@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CineReview</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/CineReview.Client.styles.css" asp-append-version="true" />
+</head>
+<body>
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    System.Func<string, string?, bool> isActive = (controller, action) =>
+    {
+        if (!string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+        return action is null || string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+    };
+}
+    <div class="app-shell d-flex flex-column min-vh-100">
+        <header>
+            <nav class="navbar navbar-expand-lg navbar-dark main-nav shadow-sm">
+                <div class="container-xl py-3">
+                    <a class="navbar-brand d-flex align-items-center" asp-controller="Home" asp-action="Index">
+                        <span class="brand-icon me-2"></span>
+                        <span class="fw-semibold">CineReview</span>
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div class="collapse navbar-collapse" id="mainNav">
+                        <ul class="navbar-nav me-auto mb-3 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link @(isActive("Home", "Index") ? "active" : null)" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#showtimes" title="Tính năng đang phát triển">Lịch chiếu</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#communities" title="Tính năng đang phát triển">Cộng đồng</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#insights" title="Tin tức &amp; hướng dẫn">Tin tức</a>
+                            </li>
+                        </ul>
+
+                        <div class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center nav-actions">
+                            <form class="input-group input-group-sm nav-search" role="search" method="get" asp-controller="Movies" asp-action="Search">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input class="form-control" type="search" name="query" placeholder="Tìm phim, diễn viên..." maxlength="100" value="@Context.Request.Query["query"]" />
+                                <button class="btn btn-outline-light" type="submit">Tìm</button>
+                            </form>
+                            <a class="btn btn-primary btn-sm" href="#tickets">Đặt vé nhanh</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <main class="flex-grow-1">
+            @RenderBody()
+        </main>
+
+        <footer class="app-footer text-light py-4 mt-auto">
+            <div class="container-xl d-flex flex-column flex-lg-row justify-content-between gap-3">
+                <div>
+                    <span class="fw-semibold">CineReview</span>
+                    <span class="text-secondary ms-2">Giao diện minh họa cho nền tảng review phim.</span>
+                </div>
+                <div class="small text-secondary">
+                    This product uses the TMDB API but is not endorsed or certified by TMDB.
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/scrollToTop.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

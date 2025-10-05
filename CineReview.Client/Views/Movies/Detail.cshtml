@@ -1,0 +1,396 @@
+@using System.Linq
+@model CineReview.Client.Features.Movies.MovieProfile?
+
+@{
+    var loadError = ViewData["LoadError"] as string;
+    var profile = Model;
+    var summary = profile?.Summary;
+    var pageTitle = summary is null || string.IsNullOrWhiteSpace(summary.Title)
+        ? "CineReview"
+        : $"{summary.Title} | CineReview";
+    ViewData["Title"] = pageTitle;
+}
+
+@if (!string.IsNullOrWhiteSpace(loadError))
+{
+    <section class="container-xl py-5 my-5 text-center">
+        <div class="alert alert-danger bg-danger-subtle border-danger-subtle text-danger-emphasis" role="alert">
+            @loadError
+        </div>
+    </section>
+}
+else if (profile is null)
+{
+    <section class="container-xl py-5 my-5 text-center">
+        <h1 class="display-5 text-white mb-3">Không tìm thấy phim</h1>
+        <p class="text-secondary mb-4">Có thể phim đã bị gỡ khỏi hệ thống hoặc chưa được thêm vào dữ liệu minh họa.</p>
+        <a class="btn btn-outline-info" href="@Url.Action("Index", "Home")">Quay lại trang chủ</a>
+    </section>
+}
+else
+{
+    var title = summary?.Title ?? "CineReview";
+    var hasPoster = !string.IsNullOrWhiteSpace(summary?.PosterUrl);
+    var hasBackdrop = !string.IsNullOrWhiteSpace(summary?.BackdropUrl);
+    var posterUrl = hasPoster ? summary!.PosterUrl : "/images/no-poster.png";
+    var certification = string.IsNullOrWhiteSpace(profile.Certification) ? "Đang cập nhật" : profile.Certification;
+    var runtimeLabel = profile.RuntimeMinutes > 0 ? $"{profile.RuntimeMinutes} phút" : "Đang cập nhật";
+    var statusLabel = string.IsNullOrWhiteSpace(profile.Status) ? "Đang cập nhật" : profile.Status;
+    var genresDisplay = summary?.Genres?.Any() == true ? string.Join(" / ", summary.Genres) : "Đang cập nhật";
+    var releaseDateShort = summary?.ReleaseDate.ToString("dd MMM yyyy") ?? "Đang cập nhật";
+    var releaseDateLong = summary?.ReleaseDate.ToString("dd/MM/yyyy") ?? "Đang cập nhật";
+    var communityScore = summary is not null && summary.CommunityScore > 0 ? summary.CommunityScore.ToString("0.0") : "Chưa có";
+    var reviewPolicyLabel = summary?.RequiresTicketVerification == true ? "Cần xác thực vé" : "Tự do review";
+    var reviewPolicyChipClass = summary?.RequiresTicketVerification == true ? "chip chip--danger" : "chip chip--success";
+    var tagline = summary is not null && !string.IsNullOrWhiteSpace(summary.Tagline) ? summary.Tagline : null;
+    var overview = summary?.Overview ?? string.Empty;
+
+    <article class="movie-detail">
+        <section class="detail-hero position-relative overflow-hidden" data-has-backdrop="@hasBackdrop">
+            <div class="detail-hero__backdrop" style="@(hasBackdrop ? $"background-image: url('{summary?.BackdropUrl}');" : null)"></div>
+            <div class="detail-hero__overlay"></div>
+            <div class="container-xl position-relative">
+                <div class="detail-hero__layout-mobile d-md-none">
+                    <div class="detail-hero__poster-shell">
+                        <div class="rounded-4 overflow-hidden shadow-lg detail-hero__poster @(hasPoster ? string.Empty : "detail-hero__poster--fallback")">
+                            @if (hasPoster)
+                            {
+                                <img src="@posterUrl" alt="Poster @title" class="w-100 h-100 object-fit-cover" loading="lazy" />
+                            }
+                            else
+                            {
+                                <div class="detail-hero__poster-placeholder">
+                                    <i class="bi bi-image"></i>
+                                    <span>Poster đang cập nhật</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="detail-hero__mobile-body">
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                            <span class="badge chip chip--primary">@releaseDateShort</span>
+                            <span class="badge chip chip--muted">@certification</span>
+                        </div>
+                        <h1 class="display-5 fw-bold text-white mb-2">@title</h1>
+                        @if (!string.IsNullOrWhiteSpace(tagline))
+                        {
+                            <p class="detail-hero__tagline text-light-emphasis mb-3">@tagline</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(overview))
+                        {
+                            <p class="text-secondary mb-3">@overview</p>
+                        }
+                        <div class="detail-hero__actions d-flex flex-column gap-2 mb-4">
+                            <a class="btn btn-primary btn-glow w-100" href="#tickets">Mua vé ngay</a>
+                            <a class="btn btn-ghost w-100" href="#reviews">Viết review</a>
+                        </div>
+                        <div class="detail-hero__mobile-meta">
+                            <div class="detail-hero__meta-chip">
+                                <span class="label">Điểm cộng đồng</span>
+                                <span class="value">@communityScore</span>
+                            </div>
+                            <div class="detail-hero__meta-chip">
+                                <span class="label">Thời lượng</span>
+                                <span class="value">@runtimeLabel</span>
+                            </div>
+                            <div class="detail-hero__meta-chip">
+                                <span class="label">Trạng thái</span>
+                                <span class="value">@statusLabel</span>
+                            </div>
+                            <div class="detail-hero__meta-chip">
+                                <span class="label">Review</span>
+                                <span class="value">
+                                    <span class="@reviewPolicyChipClass">@reviewPolicyLabel</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-hero__layout d-none d-md-grid py-2">
+                    <div class="detail-hero__poster-shell">
+                        <div class="rounded-4 overflow-hidden shadow-lg detail-hero__poster @(hasPoster ? string.Empty : "detail-hero__poster--fallback")">
+                            @if (hasPoster)
+                            {
+                                <img src="@posterUrl" alt="Poster @title" class="w-100 h-100 object-fit-cover" loading="lazy" />
+                            }
+                            else
+                            {
+                                <div class="detail-hero__poster-placeholder">
+                                    <i class="bi bi-image"></i>
+                                    <span>Poster đang cập nhật</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="detail-hero__body">
+                        <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
+                            <span class="badge chip chip--primary">@releaseDateShort</span>
+                            <span class="badge chip chip--muted">@certification</span>
+                        </div>
+                        <h1 class="display-4 fw-bold text-white mb-3">@title</h1>
+                        @if (!string.IsNullOrWhiteSpace(tagline))
+                        {
+                            <p class="lead text-light-emphasis mb-4">@tagline</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(overview))
+                        {
+                            <p class="text-secondary mb-4">@overview</p>
+                        }
+                        <div class="detail-hero__actions d-flex flex-wrap gap-3 mb-4">
+                            <a class="btn btn-primary btn-glow" href="#tickets">Mua vé ngay</a>
+                            <a class="btn btn-ghost" href="#reviews">Viết review</a>
+                        </div>
+                        <div class="detail-hero__meta">
+                            <div>
+                                <span class="text-secondary">Điểm cộng đồng</span>
+                                <span class="fw-semibold text-white">@communityScore</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary">Thời lượng</span>
+                                <span class="fw-semibold text-white">@runtimeLabel</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary">Trạng thái</span>
+                                <span class="fw-semibold text-white">@statusLabel</span>
+                            </div>
+                            <div>
+                                <span class="text-secondary">Chính sách review</span>
+                                <span class="@reviewPolicyChipClass">@reviewPolicyLabel</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-hero__info-card d-none d-lg-block">
+                        <h2 class="h6 text-secondary text-uppercase">Thông tin nhanh</h2>
+                        <ul class="list-unstyled mb-0">
+                            <li><span>Thể loại</span><span>@genresDisplay</span></li>
+                            <li><span>Ngày phát hành</span><span>@releaseDateLong</span></li>
+                            <li><span>Thời lượng</span><span>@runtimeLabel</span></li>
+                            <li><span>Chứng nhận</span><span>@certification</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="detail-hero__info-card detail-hero__info-card--mobile d-md-none">
+                    <h2 class="h6 text-secondary text-uppercase">Thông tin nhanh</h2>
+                    <ul class="list-unstyled mb-0">
+                        <li><span>Thể loại</span><span>@genresDisplay</span></li>
+                        <li><span>Ngày phát hành</span><span>@releaseDateLong</span></li>
+                        <li><span>Thời lượng</span><span>@runtimeLabel</span></li>
+                        <li><span>Chứng nhận</span><span>@certification</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="detail-section" id="about">
+            <div class="container-xl">
+                <div class="row g-5">
+                    <div class="col-lg-8">
+                        <h2 class="h3 text-white mb-3">Điểm nhấn nội dung</h2>
+                        @if (profile.Highlights.Any())
+                        {
+                            <ul class="detail-highlights">
+                                @foreach (var highlight in profile.Highlights)
+                                {
+                                    <li>@highlight</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="text-secondary mb-4">Thông tin điểm nhấn đang cập nhật. Hãy quay lại sau để xem thêm.</p>
+                        }
+
+                        <div class="ticket-policy" id="tickets">
+                            <h3 class="h5 text-white mb-2">Chính sách vé &amp; review</h3>
+                            <p class="text-secondary mb-0">@profile.TicketPolicyNote</p>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="watch-options">
+                            <h2 class="h5 text-white mb-3">Các định dạng đang mở bán</h2>
+                            @if (profile.WatchOptions.Any())
+                            {
+                                <ul class="list-unstyled m-0">
+                                    @foreach (var option in profile.WatchOptions)
+                                    {
+                                        <li><i class="bi bi-camera-reels me-2 text-info"></i>@option</li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <p class="text-secondary small mb-0">Thông tin suất chiếu đang được cập nhật.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="detail-section" id="cast">
+            <div class="container-xl">
+                <div class="section-header">
+                    <h2 class="h3 text-white mb-0">Diễn viên chính</h2>
+                </div>
+                @if (profile.TopCast.Any())
+                {
+                    <div class="cast-grid">
+                        @foreach (var cast in profile.TopCast)
+                        {
+                            <div class="cast-card">
+                                <img src="@cast.HeadshotUrl" alt="@cast.Name" loading="lazy" />
+                                <div class="cast-card__info">
+                                    <span class="fw-semibold text-white">@cast.Name</span>
+                                    <span class="text-secondary">@cast.Character</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-secondary mb-0">Danh sách diễn viên đang được cập nhật.</p>
+                }
+            </div>
+        </section>
+
+        @if (profile.Videos.Any())
+        {
+            <section class="detail-section" id="videos">
+                <div class="container-xl">
+                    <div class="section-header">
+                        <h2 class="h3 text-white mb-0">Video chính thức</h2>
+                        <span class="text-secondary">Từ kênh @profile.Videos.First().Provider</span>
+                    </div>
+                    <div class="row g-4 cards-row-mobile">
+                        @foreach (var video in profile.Videos)
+                        {
+                            <div class="col-12 col-lg-6">
+                                <a class="video-card" href="@video.VideoUrl" target="_blank" rel="noopener">
+                                    <div class="video-card__thumb">
+                                        <img src="@video.ThumbnailUrl" alt="@video.Title" loading="lazy" />
+                                        <span class="video-card__play"><i class="bi bi-play-fill"></i></span>
+                                    </div>
+                                    <div class="p-4">
+                                        <h3 class="h6 text-white mb-1">@video.Title</h3>
+                                        <span class="text-secondary small">Phát trên @video.Provider</span>
+                                    </div>
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </section>
+        }
+
+        <section class="detail-section" id="reviews">
+            <div class="container-xl">
+                <div class="section-header">
+                    <h2 class="h3 text-white mb-0">Review từ cộng đồng</h2>
+                    <a class="btn btn-ghost btn-sm" href="#">Xem toàn bộ</a>
+                </div>
+                <div class="row g-4">
+                    @if (profile.Reviews.Any())
+                    {
+                        @foreach (var review in profile.Reviews)
+                        {
+                            var supportTone = DetermineSupportTone(review.SupportScore);
+                            var supportValue = FormatSupportScore(review.SupportScore);
+                            <div class="col-12">
+                                <article class="community-review">
+                                    <div class="community-review__support" data-tone="@supportTone">
+                                        <span class="community-review__support-value">@supportValue</span>
+                                        <span class="community-review__support-label">ủng hộ</span>
+                                    </div>
+                                    <div class="community-review__content">
+                                        <header class="community-review__header">
+                                            <div class="community-review__author">
+                                                <img src="@review.AvatarUrl" alt="Avatar @review.Author" class="community-review__avatar" loading="lazy" />
+                                                <div>
+                                                    <span class="community-review__name">@review.Author</span>
+                                                    <span class="community-review__badge">@review.BadgeLabel</span>
+                                                </div>
+                                            </div>
+                                            <div class="community-review__meta">
+                                                <span class="community-review__username">@review.Username</span>
+                                                <span class="community-review__score">@review.Rating/10</span>
+                                            </div>
+                                        </header>
+                                        <p class="community-review__excerpt">@review.Excerpt</p>
+                                        <footer class="community-review__footer">
+                                            <span>@review.CreatedAt.ToString("dd/MM/yyyy")</span>
+                                            @if (!string.IsNullOrWhiteSpace(review.Location))
+                                            {
+                                                <span class="community-review__bullet">•</span>
+                                                <span>@review.Location</span>
+                                            }
+                                            @if (review.IsTicketVerified)
+                                            {
+                                                <span class="badge chip chip--success">Đã xác thực vé</span>
+                                            }
+                                        </footer>
+                                    </div>
+                                    <div class="community-review__actions">
+                                        <button type="button" class="community-review__action community-review__action--fair">
+                                            <span class="community-review__action-label">Công tâm</span>
+                                        </button>
+                                        <button type="button" class="community-review__action community-review__action--unfair">
+                                            <span class="community-review__action-label">Không công tâm</span>
+                                        </button>
+                                    </div>
+                                </article>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="col-12">
+                            <div class="alert alert-info bg-info-subtle border-info-subtle text-info-emphasis" role="alert">
+                                Hãy là người đầu tiên viết review sau khi xác thực vé của bạn.
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="detail-section" id="recommendations">
+            <div class="container-xl">
+                <div class="section-header">
+                    <h2 class="h3 text-white mb-0">Gợi ý cho bạn</h2>
+                    <span class="text-secondary">Những phim liên quan mà cộng đồng đang quan tâm.</span>
+                </div>
+                @if (profile.Recommended.Any())
+                {
+                    <div class="row g-4 cards-row-mobile">
+                        @foreach (var movie in profile.Recommended.Take(4))
+                        {
+                            <div class="col-12 col-sm-6 col-lg-3">
+                                @await Html.PartialAsync("_MovieCard", movie)
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info bg-info-subtle border-info-subtle text-info-emphasis" role="alert">
+                        Chưa có gợi ý phù hợp. Bạn hãy khám phá thêm trên trang chủ.
+                    </div>
+                }
+            </div>
+        </section>
+    </article>
+}
+
+@functions {
+    private static string DetermineSupportTone(int score) => score switch
+    {
+        > 0 => "positive",
+        < 0 => "negative",
+        _ => "neutral"
+    };
+
+    private static string FormatSupportScore(int score) => score > 0 ? $"+{score}" : score.ToString();
+}

@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Email", "Libraries\Email\Em
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Libraries\Common\Common.csproj", "{4FCD7618-F0E5-42BE-AAD8-8FDCB3443E81}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CineReview.Client", "CineReview.Client\CineReview.Client.csproj", "{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -113,6 +115,18 @@ Global
 		{4FCD7618-F0E5-42BE-AAD8-8FDCB3443E81}.Release|x64.Build.0 = Release|Any CPU
 		{4FCD7618-F0E5-42BE-AAD8-8FDCB3443E81}.Release|x86.ActiveCfg = Release|Any CPU
 		{4FCD7618-F0E5-42BE-AAD8-8FDCB3443E81}.Release|x86.Build.0 = Release|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Debug|x64.Build.0 = Debug|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Debug|x86.Build.0 = Debug|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Release|x64.ActiveCfg = Release|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Release|x64.Build.0 = Release|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Release|x86.ActiveCfg = Release|Any CPU
+		{F3E4C62E-C9B9-4BD9-A2E4-E8B7663B9351}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
