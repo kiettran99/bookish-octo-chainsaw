@@ -291,7 +291,9 @@
             try {
                 const token = getAuthToken();
                 if (!token) {
-                    throw new Error("Không tìm thấy token xác thực");
+                    toggleElement(loader, false);
+                    showStatusDialog(false, "Không tìm thấy token xác thực. Vui lòng đăng nhập lại.");
+                    return;
                 }
 
                 const response = await fetch(`${apiBaseUrl}/api/Review`, {
@@ -304,7 +306,17 @@
                     body: JSON.stringify(currentReviewData)
                 });
 
-                const result = await response.json();
+                // Always hide loader before showing dialog
+                toggleElement(loader, false);
+
+                let result;
+                try {
+                    result = await response.json();
+                } catch (parseError) {
+                    console.error("Lỗi parse JSON:", parseError);
+                    showStatusDialog(false, "Lỗi xử lý phản hồi từ server. Vui lòng thử lại.");
+                    return;
+                }
 
                 if (!response.ok || !result.isSuccess) {
                     const errorMessage = result.message || result.errorMessage || "Không thể gửi review";
@@ -331,9 +343,8 @@
 
             } catch (error) {
                 console.error("Lỗi khi gửi review:", error);
-                showStatusDialog(false, error.message || "Đã xảy ra lỗi khi gửi review. Vui lòng thử lại sau.");
-            } finally {
                 toggleElement(loader, false);
+                showStatusDialog(false, error.message || "Đã xảy ra lỗi khi gửi review. Vui lòng thử lại sau.");
             }
         };
 
@@ -682,10 +693,22 @@
             });
         }
 
+        if (dismissStatusButton) {
+            dismissStatusButton.addEventListener("click", e => {
+                e.preventDefault();
+                hideStatusDialog();
+                // Don't close sheet on error, allow retry
+            });
+        }
+
         if (retryButton) {
             retryButton.addEventListener("click", e => {
                 e.preventDefault();
                 hideStatusDialog();
+                // Re-show confirm dialog to allow retry
+                if (currentReviewData) {
+                    showConfirmDialog();
+                }
             });
         }
 

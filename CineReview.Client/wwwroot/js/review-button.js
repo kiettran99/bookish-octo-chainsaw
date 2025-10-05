@@ -41,14 +41,6 @@
             return null;
         };
 
-        // Get user profile
-        const getUserProfile = () => {
-            if (window.CineReviewAuth && typeof window.CineReviewAuth.getProfile === "function") {
-                return window.CineReviewAuth.getProfile();
-            }
-            return null;
-        };
-
         // Show skeleton loading on buttons
         const showButtonLoading = () => {
             writeReviewButtons.forEach(btn => {
@@ -62,20 +54,43 @@
 
         // Update button state
         const updateButtonState = (hasReview) => {
-            writeReviewButtons.forEach(btn => {
-                btn.disabled = false;
+            const buttons = document.querySelectorAll("[data-write-review]");
+            buttons.forEach(btn => {
+                // Clone and replace to remove old event listeners
+                const newBtn = btn.cloneNode(false); // Clone without children
+                
+                newBtn.disabled = false;
                 if (hasReview) {
-                    btn.innerHTML = `
+                    newBtn.innerHTML = `
                         <i class="bi bi-check-circle me-2"></i>
                         <span>Đã review</span>
                     `;
-                    btn.classList.add("btn-success");
-                    btn.classList.remove("btn-ghost", "btn-primary");
+                    newBtn.classList.add("btn-success");
+                    newBtn.classList.remove("btn-ghost", "btn-primary");
                 } else {
-                    btn.innerHTML = `Viết review`;
-                    btn.classList.remove("btn-success");
+                    newBtn.innerHTML = `Viết review`;
+                    newBtn.classList.remove("btn-success");
                     // Keep original classes
                 }
+                
+                // Replace old button
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                // Attach new handler
+                newBtn.addEventListener("click", e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    if (userReview) {
+                        // Show existing review dialog only
+                        showYourReviewDialog();
+                    } else {
+                        // Open review sheet
+                        if (window.CineReviewSheet && typeof window.CineReviewSheet.open === "function") {
+                            window.CineReviewSheet.open();
+                        }
+                    }
+                }, true);
             });
         };
 
@@ -148,16 +163,10 @@
                 return;
             }
 
-            const profile = getUserProfile();
-            if (!profile || !profile.userId) {
-                updateButtonState(false);
-                return;
-            }
-
             showButtonLoading();
 
             try {
-                const response = await fetch(`${apiBaseUrl}/api/Review/user/${profile.userId}/movie/${movieId}`, {
+                const response = await fetch(`${apiBaseUrl}/api/Review/my-review/movie/${movieId}`, {
                     method: "GET",
                     headers: {
                         "Accept": "application/json",
@@ -182,30 +191,11 @@
                 }
 
             } catch (error) {
-                console.error("Lỗi khi kiểm tra review:", error);
                 // On error, assume no review
                 userReview = null;
                 updateButtonState(false);
             }
         };
-
-        // Handle button click
-        writeReviewButtons.forEach(button => {
-            button.addEventListener("click", e => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                if (userReview) {
-                    // Show existing review
-                    showYourReviewDialog();
-                } else {
-                    // Open review sheet (handled by review.js)
-                    if (window.CineReviewSheet && typeof window.CineReviewSheet.open === "function") {
-                        window.CineReviewSheet.open();
-                    }
-                }
-            });
-        });
 
         // Close dialog buttons
         yourReviewCloseButtons.forEach(button => {
@@ -221,7 +211,7 @@
         // Re-check after successful review submission
         if (window.CineReviewSheet) {
             const originalReload = window.CineReviewSheet.reload;
-            window.CineReviewSheet.reload = function() {
+            window.CineReviewSheet.reload = function () {
                 if (originalReload) originalReload();
                 checkUserReview();
             };
