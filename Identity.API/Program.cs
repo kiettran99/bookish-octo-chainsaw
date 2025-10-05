@@ -1,7 +1,7 @@
 using System.Text.Json;
-using CineReview.API.Extensions;
-using CineReview.API.Middlewares;
 using Common.Models;
+using Identity.API.Extensions;
+using Identity.API.Middlewares;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,8 +18,7 @@ builder.Services.AddControllers()
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerServices();
-builder.Services.AddPortalServices(builder.Configuration);
-builder.Services.AddBusinessServices();
+builder.Services.AddIdentityServices(builder.Configuration);
 builder.Services.AddCors();
 
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
@@ -39,8 +38,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseMiddleware<JwtMiddleware>();
-// app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseAuthorization();
 
 app.UseCors(x => x

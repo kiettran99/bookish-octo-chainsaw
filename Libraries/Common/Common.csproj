@@ -10,8 +10,8 @@
     <PackageReference Include="RestSharp" Version="112.1.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.9.25" />
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.9" />
-    <PackageReference Include="MassTransit" Version="8.5.3" />
-    <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.3" />
+    <PackageReference Include="MassTransit" Version="8.5.4" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.4" />
   </ItemGroup>
 
 </Project>
