@@ -1,4 +1,5 @@
 using CineReview.Client.Features.Movies;
+using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,8 @@ else
 }
 
 var app = builder.Build();
+
+StaticWebAssetsLoader.UseStaticWebAssets(app.Environment, app.Configuration);
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
