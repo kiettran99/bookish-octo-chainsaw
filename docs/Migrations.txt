@@ -1,0 +1,7 @@
+cd Identity.API
+dotnet ef migrations add InitialCreate --project Identity.API.csproj --startup-project Identity.API.csproj --verbose
+dotnet ef database update --project Identity.API.csproj --startup-project Identity.API.csproj --verbose
+
+CineReview.API
+dotnet ef migrations add InitialCreate -p CineReview.Infrastructure.csproj -c ApplicationDbContext -s ../CineReview.API/CineReview.API.csproj --verbose
+dotnet ef database update -p CineReview.Infrastructure.csproj -s ../CineReview.API/CineReview.API.csproj --verbose
