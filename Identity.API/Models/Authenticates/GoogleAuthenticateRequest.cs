@@ -13,4 +13,6 @@ public class GoogleAuthenticateRequest
     public string? Picture { get; set; }
     public string? Locale { get; set; }
     public bool EmailVerified { get; set; }
+
+    public string? ProviderAccountId { get; set; }
 }

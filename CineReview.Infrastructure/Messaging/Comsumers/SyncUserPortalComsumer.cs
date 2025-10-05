@@ -22,7 +22,7 @@ public class SyncUserPortalComsumer : IConsumer<SyncUserPortalMessage>
         var syncUserMessage = context.Message;
 
         var user = await _userRepository.GetByIdAsync(syncUserMessage.UserId);
-        if (user == null && syncUserMessage.IsNewUser)
+        if (user == null)
         {
             user = new User
             {

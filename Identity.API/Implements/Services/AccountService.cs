@@ -113,7 +113,8 @@ public class AccountService : IAccountService
                 CreatedOnUtc = DateTime.UtcNow,
                 Avatar = model.Picture ?? string.Empty,
                 EmailConfirmed = model.EmailVerified,
-                Region = model.Locale ?? "vi"
+                Region = model.Locale ?? "vi",
+                ProviderAccountId = model.ProviderAccountId
             };
 
             var result = await _userManager.CreateAsync(user);

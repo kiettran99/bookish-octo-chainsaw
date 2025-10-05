@@ -57,6 +57,8 @@ public static class PortalServiceExtensions
                        s.Protocol = SslProtocols.Tls12;
                    });
                });
+
+               cfg.ConfigureEndpoints(context);
            });
        });
 

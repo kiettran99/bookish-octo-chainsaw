@@ -1,5 +1,7 @@
 using System.Security.Authentication;
+using System.Security.Claims;
 using Common.SeedWork;
+using Identity.API.Implements.Infrastructures;
 using Identity.Domain.AggregatesModel.RoleAggregates;
 using Identity.Domain.AggregatesModel.UserAggregates;
 using Identity.Domain.Interfaces.Infrastructures;
@@ -46,6 +48,24 @@ public static class IdentityServiceExtensions
         {
             options.ClientId = config.GetValue<string>("Authentication:Google:ClientId")!;
             options.ClientSecret = config.GetValue<string>("Authentication:Google:ClientSecret")!;
+
+            // Thêm scope để lấy thông tin profile (bao gồm picture)
+            options.Scope.Add("profile");
+            options.Scope.Add("email");
+
+            // Lưu access token để có thể sử dụng sau này nếu cần
+            options.SaveTokens = true;
+
+            options.Events.OnCreatingTicket = (context) =>
+            {
+                var picture = context.User.GetProperty("picture").GetString();
+                if (!string.IsNullOrEmpty(picture) && context.Identity != null)
+                {
+                    context.Identity.AddClaim(new Claim("picture", picture));
+                }
+
+                return Task.CompletedTask;
+            };
         });
 
         services.AddMassTransit(x =>

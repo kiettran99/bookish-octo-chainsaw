@@ -10,24 +10,24 @@ using Identity.Domain.Interfaces.Services;
 using Identity.Domain.Models.Users;
 using Microsoft.AspNetCore.Identity;
 
-namespace Identity.Infrastructure.Implements.Infrastructures;
+namespace Identity.API.Implements.Infrastructures;
 
 public class UserService : IUserService
 {
     private readonly UserManager<User> _userManager;
     private readonly RoleManager<Role> _roleManager;
-    // private readonly ISyncUserPortalPublisher _syncUserPortalPublisher;
+    private readonly ISyncUserPortalPublisher _syncUserPortalPublisher;
     private readonly IUnitOfWork _unitOfWork;
 
     public UserService(
         UserManager<User> userManager,
         RoleManager<Role> roleManager,
-        // ISyncUserPortalPublisher syncUserPortalPublisher,
+        ISyncUserPortalPublisher syncUserPortalPublisher,
         IUnitOfWork unitOfWork)
     {
         _userManager = userManager;
         _roleManager = roleManager;
-        // _syncUserPortalPublisher = syncUserPortalPublisher;
+        _syncUserPortalPublisher = syncUserPortalPublisher;
         _unitOfWork = unitOfWork;
     }
 
@@ -81,13 +81,13 @@ public class UserService : IUserService
         }
 
         // Sync user portal when update
-        // await _syncUserPortalPublisher.SyncUserPortalAsync(new SyncUserPortalMessage
-        // {
-        //     UserId = user.Id,
-        //     FullName = user.FullName,
-        //     IsBanned = user.IsBanned,
-        //     Region = user.Region
-        // });
+        await _syncUserPortalPublisher.SyncUserPortalAsync(new SyncUserPortalMessage
+        {
+            UserId = user.Id,
+            FullName = user.FullName,
+            IsBanned = user.IsBanned,
+            Region = user.Region
+        });
 
         return new ServiceResponse<bool>(true);
     }

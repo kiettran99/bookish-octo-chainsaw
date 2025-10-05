@@ -1,9 +1,7 @@
 using System.Security.Claims;
-using Common.Enums;
 using Common.Models;
 using Identity.API.Attributes;
 using Identity.Domain.AggregatesModel.UserAggregates;
-using Identity.Domain.Interfaces.Infrastructures;
 using Identity.Domain.Interfaces.Services;
 using Identity.Domain.Models.Authenticates;
 using Microsoft.AspNetCore.Authentication;
@@ -18,18 +16,15 @@ namespace Identity.API.Controllers;
 public class AccountController : ControllerBase
 {
     private readonly IAccountService _accountService;
-    private readonly IJwtService _jwtService;
     private readonly UserManager<User> _userManager;
     private readonly IConfiguration _configuration;
 
     public AccountController(
         IAccountService accountService,
-        IJwtService jwtService,
         UserManager<User> userManager,
         IConfiguration configuration)
     {
         _accountService = accountService;
-        _jwtService = jwtService;
         _userManager = userManager;
         _configuration = configuration;
     }
@@ -86,6 +81,7 @@ public class AccountController : ControllerBase
         var picture = result.Principal.FindFirstValue("picture");
         var locale = result.Principal.FindFirstValue("locale");
         var emailVerified = result.Principal.FindFirstValue("email_verified");
+        var providerAccountId = result.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
 
         // Gọi service để xử lý đăng nhập/đăng ký
         var authResponse = await _accountService.GoogleAuthenticateAsync(new GoogleAuthenticateRequest
@@ -96,7 +92,8 @@ public class AccountController : ControllerBase
             FamilyName = surname,
             Picture = picture,
             Locale = locale,
-            EmailVerified = bool.TryParse(emailVerified, out var verified) && verified
+            EmailVerified = bool.TryParse(emailVerified, out var verified) && verified,
+            ProviderAccountId = providerAccountId
         });
 
         if (!authResponse.IsSuccess)
