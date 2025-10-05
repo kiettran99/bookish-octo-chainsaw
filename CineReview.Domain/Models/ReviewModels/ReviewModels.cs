@@ -1,0 +1,55 @@
+using CineReview.Domain.Enums;
+
+namespace CineReview.Domain.Models.ReviewModels;
+
+public class CreateReviewRequestModel
+{
+    public int TmdbMovieId { get; set; }
+    public ReviewType Type { get; set; }
+    public List<string>? DescriptionTag { get; set; }
+    public string? Description { get; set; }
+    public int Rating { get; set; } // 1-10 scale
+}
+
+public class UpdateReviewRequestModel
+{
+    public int ReviewId { get; set; }
+    public ReviewType Type { get; set; }
+    public List<string>? DescriptionTag { get; set; }
+    public string? Description { get; set; }
+    public int Rating { get; set; }
+}
+
+public class RateReviewRequestModel
+{
+    public int ReviewId { get; set; }
+    public RatingType RatingType { get; set; }
+}
+
+public class ReviewResponseModel
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string? UserName { get; set; }
+    public string? UserAvatar { get; set; }
+    public int TmdbMovieId { get; set; }
+    public ReviewStatus Status { get; set; }
+    public double CommunicationScore { get; set; }
+    public ReviewType Type { get; set; }
+    public List<string>? DescriptionTag { get; set; }
+    public string? Description { get; set; }
+    public int Rating { get; set; }
+    public int FairVotes { get; set; }
+    public int UnfairVotes { get; set; }
+    public DateTime CreatedOnUtc { get; set; }
+    public DateTime? UpdatedOnUtc { get; set; }
+}
+
+public class ReviewListRequestModel
+{
+    public int? TmdbMovieId { get; set; }
+    public int? UserId { get; set; }
+    public ReviewStatus? Status { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+}
