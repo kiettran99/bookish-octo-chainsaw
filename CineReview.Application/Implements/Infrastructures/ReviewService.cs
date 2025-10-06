@@ -30,9 +30,9 @@ public class ReviewService : IReviewService
             }
 
             // Validate content based on type
-            if (request.Type == ReviewType.Tag && (request.DescriptionTag == null || !request.DescriptionTag.Any()))
+            if (request.Type == ReviewType.Tag && request.DescriptionTag == null)
             {
-                return new ServiceResponse<ReviewResponseModel>("Tag review must have at least one tag");
+                return new ServiceResponse<ReviewResponseModel>("Tag review must have tag data");
             }
 
             if (request.Type == ReviewType.Normal && string.IsNullOrWhiteSpace(request.Description))
@@ -46,7 +46,7 @@ public class ReviewService : IReviewService
                 .FirstOrDefaultAsync();
 
             if (existingReview != null)
-            {
+         {
                 return new ServiceResponse<ReviewResponseModel>("You have already reviewed this movie");
             }
 
@@ -66,7 +66,7 @@ public class ReviewService : IReviewService
             await _unitOfWork.SaveChangesAsync();
 
             var response = await GetReviewByIdAsync(review.Id);
-            return response;
+               return response;
         }
         catch (Exception ex)
         {
@@ -98,9 +98,9 @@ public class ReviewService : IReviewService
             }
 
             // Validate content based on type
-            if (request.Type == ReviewType.Tag && (request.DescriptionTag == null || !request.DescriptionTag.Any()))
+            if (request.Type == ReviewType.Tag && request.DescriptionTag == null)
             {
-                return new ServiceResponse<ReviewResponseModel>("Tag review must have at least one tag");
+                return new ServiceResponse<ReviewResponseModel>("Tag review must have tag data");
             }
 
             if (request.Type == ReviewType.Normal && string.IsNullOrWhiteSpace(request.Description))
@@ -183,7 +183,7 @@ public class ReviewService : IReviewService
                 CommunicationScore = review.Review.CommunicationScore,
                 Type = review.Review.Type,
                 DescriptionTag = review.Review.Type == ReviewType.Tag && !string.IsNullOrEmpty(review.Review.DescriptionTag)
-                    ? JsonSerializer.Deserialize<List<string>>(review.Review.DescriptionTag)
+                    ? JsonSerializer.Deserialize<object>(review.Review.DescriptionTag)
                     : null,
                 Description = review.Review.Description,
                 Rating = review.Review.Rating,
@@ -251,7 +251,7 @@ public class ReviewService : IReviewService
                 CommunicationScore = r.Review.CommunicationScore,
                 Type = r.Review.Type,
                 DescriptionTag = r.Review.Type == ReviewType.Tag && !string.IsNullOrEmpty(r.Review.DescriptionTag)
-                    ? JsonSerializer.Deserialize<List<string>>(r.Review.DescriptionTag)
+                    ? JsonSerializer.Deserialize<object>(r.Review.DescriptionTag)
                     : null,
                 Description = r.Review.Description,
                 Rating = r.Review.Rating,

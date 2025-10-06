@@ -1,4 +1,5 @@
 using CineReview.Domain.Enums;
+using System.Text.Json;
 
 namespace CineReview.Domain.Models.ReviewModels;
 
@@ -6,7 +7,7 @@ public class CreateReviewRequestModel
 {
     public int TmdbMovieId { get; set; }
     public ReviewType Type { get; set; }
-    public List<string>? DescriptionTag { get; set; }
+    public object? DescriptionTag { get; set; } // Can be List<string> or List<TagRatingItem> or any JSON structure
     public string? Description { get; set; }
     public int Rating { get; set; } // 1-10 scale
 }
@@ -15,8 +16,15 @@ public class UpdateReviewRequestModel
 {
     public int ReviewId { get; set; }
     public ReviewType Type { get; set; }
-    public List<string>? DescriptionTag { get; set; }
+    public object? DescriptionTag { get; set; } // Can be List<string> or List<TagRatingItem> or any JSON structure
     public string? Description { get; set; }
+    public int Rating { get; set; }
+}
+
+public class TagRatingItem
+{
+    public int TagId { get; set; }
+    public string TagName { get; set; } = string.Empty;
     public int Rating { get; set; }
 }
 
@@ -36,7 +44,7 @@ public class ReviewResponseModel
     public ReviewStatus Status { get; set; }
     public double CommunicationScore { get; set; }
     public ReviewType Type { get; set; }
-    public List<string>? DescriptionTag { get; set; }
+    public object? DescriptionTag { get; set; } // Can be List<string> or List<TagRatingItem> or any JSON structure
     public string? Description { get; set; }
     public int Rating { get; set; }
     public int FairVotes { get; set; }

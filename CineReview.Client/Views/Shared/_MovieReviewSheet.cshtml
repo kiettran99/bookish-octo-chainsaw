@@ -33,28 +33,32 @@
                 </div>
 
                 <div class="review-sheet__section" data-review-template-section>
-                    <label class="form-label" for="reviewCategory">Chủ đề chính</label>
-                    <select id="reviewCategory" class="form-select" data-review-category>
-                        <option value="" disabled hidden selected>Chọn chủ đề</option>
-                        @foreach (var category in reviewTagCatalog.Keys)
-                        {
-                            <option value="@category">@category</option>
-                        }
+                    <label class="form-label" for="tagMultiSelect">Chọn các tag đánh giá</label>
+                    <div class="review-sheet__hint mb-3">Chọn một hoặc nhiều tag để đánh giá. Có thể tìm kiếm theo tên.</div>
+                    <select id="tagMultiSelect" 
+                            multiple 
+                            data-tag-select
+                            class="form-select"
+                            style="display: none;">
+                        <!-- Options will be populated by JS -->
                     </select>
                 </div>
 
                 <div class="review-sheet__section" data-review-template-section>
-                    <label class="form-label" for="reviewTag">Đánh giá cụ thể</label>
-                    <select id="reviewTag" class="form-select" data-review-tag disabled>
-                        <option value="" disabled hidden selected>Chọn nhận xét</option>
-                    </select>
+                    <div data-selected-tags-container>
+                        <p class="text-secondary">Chưa chọn tag nào. Chọn ít nhất 1 tag để tiếp tục.</p>
+                    </div>
                     <div class="review-sheet__hint">Review dạng tag sẽ hiển thị ngay sau khi gửi.</div>
                 </div>
 
                 <div class="review-sheet__section" data-review-freeform-section hidden>
                     <label class="form-label" for="freeformReview">Chia sẻ chi tiết</label>
                     <textarea id="freeformReview" class="form-control" rows="6" placeholder="Hãy kể rõ trải nghiệm rạp, cảm xúc sau khi xem…" data-review-freeform></textarea>
-                    <div class="review-sheet__hint review-sheet__hint--warning">Review bằng chữ sẽ được đội ngũ duyệt trước khi hiển thị.</div>
+                    <div class="review-sheet__hint review-sheet__hint--warning mt-2 mb-3">Review bằng chữ sẽ được đội ngũ duyệt trước khi hiển thị.</div>
+                    
+                    <div data-freeform-rating class="mt-3">
+                        <!-- Rating slider will be rendered here by JS -->
+                    </div>
                 </div>
             </div>
             <footer class="review-sheet__footer">
@@ -76,10 +80,11 @@
             <p>Bạn xác nhận muốn gửi review này chứ? Hệ thống sẽ hiển thị trạng thái ngay sau khi gửi.</p>
             <div class="review-dialog__summary">
                 <ul data-review-summary-template>
-                    <li><span>Chủ đề</span><span data-summary-category></span></li>
-                    <li><span>Nhận xét</span><span data-summary-tag></span></li>
+                    <!-- Tag ratings will be rendered here by JS -->
                 </ul>
-                <p data-review-summary-freeform hidden></p>
+                <div data-review-summary-freeform hidden>
+                    <!-- Freeform content and rating will be rendered here by JS -->
+                </div>
             </div>
             <div class="review-dialog__actions">
                 <button type="button" class="btn btn-ghost" data-review-confirm-cancel>Xem lại</button>
