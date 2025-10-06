@@ -35,11 +35,65 @@
 			this.mode = "template";
 			this.lastSubmitSucceeded = null;
 
+			// Validate required elements exist before continuing. If some are missing,
+			// bail out early to avoid runtime errors when methods like resetForm try
+			// to access DOM nodes (e.g. setting `.value`).
+			const required = [
+				"layer",
+				"confirmDialog",
+				"statusDialog",
+				"loader",
+				"submitButton",
+				"categorySelect",
+				"tagSelect",
+				"freeformInput",
+				"modeButtons",
+				"templateSections",
+				"freeformSections",
+				"summaryTemplate",
+				"summaryCategory",
+				"summaryTag",
+				"summaryFreeform",
+				"statusIcon",
+				"statusTitle",
+				"statusDescription",
+				"statusSuccessActions",
+				"statusFailureActions",
+			];
+
+			const missing = required.filter(key => !this[key]);
+			if (missing.length) {
+				console.warn("MovieReviewSheet: missing required elements, aborting initialization:", missing);
+				this.initialized = false;
+				return;
+			}
+
+			this.initialized = true;
+
 			this.bindEvents();
 			this.resetForm();
 		}
 
 		bindEvents() {
+			// Ensure required elements exist before binding event listeners to avoid
+			// "Cannot read properties of null (reading 'addEventListener')" errors
+			const required = [
+				"layer",
+				"confirmDialog",
+				"statusDialog",
+				"loader",
+				"submitButton",
+				"categorySelect",
+				"tagSelect",
+				"freeformInput",
+			];
+
+			const missing = required.filter(key => !this[key]);
+			if (missing.length) {
+				console.warn("MovieReviewSheet: missing required elements, skipping event binding:", missing);
+				return;
+			}
+
 			this.layer.querySelectorAll("[data-review-close]").forEach(element => {
 				element.addEventListener("click", () => this.close());
 			});
@@ -77,7 +131,9 @@
 		}
 
 		open() {
-			this.layer.hidden = false;
+			if (this.layer) {
+				this.layer.hidden = false;
+			}
 			document.body.classList.add("review-sheet-open");
 		}
 
@@ -96,27 +152,39 @@
 			}
 
 			this.mode = mode;
-			this.modeButtons.forEach(button => {
-				button.classList.toggle("is-active", button.dataset.reviewMode === mode);
-			});
+			if (this.modeButtons && this.modeButtons.forEach) {
+				this.modeButtons.forEach(button => {
+					button.classList.toggle("is-active", button.dataset.reviewMode === mode);
+				});
+			}
 
 			const showTemplate = mode === "template";
-			this.templateSections.forEach(section => section.hidden = !showTemplate);
-			this.freeformSections.forEach(section => section.hidden = showTemplate);
+			if (this.templateSections && this.templateSections.forEach) {
+				this.templateSections.forEach(section => section.hidden = !showTemplate);
+			}
+			if (this.freeformSections && this.freeformSections.forEach) {
+				this.freeformSections.forEach(section => section.hidden = showTemplate);
+			}
 
 			if (showTemplate) {
-				this.freeformInput.value = "";
+				if (this.freeformInput) this.freeformInput.value = "";
 			} else {
-				this.categorySelect.value = "";
+				if (this.categorySelect) this.categorySelect.value = "";
 				this.updateTagOptions();
-				this.tagSelect.disabled = true;
-				this.tagSelect.selectedIndex = 0;
+				if (this.tagSelect) {
+					this.tagSelect.disabled = true;
+					this.tagSelect.selectedIndex = 0;
+				}
 			}
 
 			this.updateSubmitState();
 		}
 
 		updateTagOptions() {
+			if (!this.categorySelect || !this.tagSelect) {
+				return;
+			}
+
 			const selectedCategory = this.categorySelect.value;
 			const tags = this.catalog[selectedCategory] || [];
 			this.tagSelect.innerHTML = "";
@@ -201,44 +269,80 @@
 
 		renderSummary() {
 			const templateMode = this.mode === "template";
-			this.summaryTemplate.hidden = !templateMode;
-			this.summaryFreeform.hidden = templateMode;
+			if (this.summaryTemplate) this.summaryTemplate.hidden = !templateMode;
+			if (this.summaryFreeform) this.summaryFreeform.hidden = templateMode;
 
 			if (templateMode) {
-				const category = this.categorySelect.value;
-				const tag = this.tagSelect.value;
-				this.summaryCategory.textContent = category;
-				this.summaryTag.textContent = tag;
+				const category = this.categorySelect ? this.categorySelect.value : "";
+				let tag = "";
+				if (this.tagSelect) {
+					// handle multi-select (if present) by joining selected options
+					if (this.tagSelect.multiple) {
+						const selected = Array.from(this.tagSelect.selectedOptions).map(opt => opt.value);
+						tag = selected.join(", ");
+					} else {
+						tag = this.tagSelect.value;
+					}
+				}
+				if (this.summaryCategory) this.summaryCategory.textContent = category;
+				if (this.summaryTag) this.summaryTag.textContent = tag;
 				// Note input has been removed, no need to handle it
 			} else {
-				const text = this.freeformInput.value.trim();
+				const text = this.freeformInput ? this.freeformInput.value.trim() : "";
 				const preview = text.length > 140 ? `${text.slice(0, 140)}…` : text;
-				this.summaryFreeform.textContent = preview;
+				if (this.summaryFreeform) this.summaryFreeform.textContent = preview;
 			}
 		}
 
 		canSubmit() {
 			if (this.mode === "template") {
-				return Boolean(this.categorySelect.value) && Boolean(this.tagSelect.value);
+				// If category/tag controls aren't present, cannot submit template mode
+				if (!this.categorySelect && !this.tagSelect) return false;
+
+				let categoryOk = true;
+				let tagOk = true;
+
+				if (this.categorySelect) categoryOk = Boolean(this.categorySelect.value);
+				if (this.tagSelect) {
+					if (this.tagSelect.multiple) {
+						// ensure at least one selected
+						tagOk = Array.from(this.tagSelect.selectedOptions).length > 0;
+					} else {
+						tagOk = Boolean(this.tagSelect.value);
+					}
+				}
+
+				return categoryOk && tagOk;
 			}
+
+			if (!this.freeformInput) return false;
 
 			return this.freeformInput.value.trim().length > 0;
 		}
 
 		updateSubmitState() {
+			if (!this.submitButton) return;
 			this.submitButton.disabled = !this.canSubmit() || this.isSubmitting;
 		}
 
 		resetForm() {
 			this.mode = "template";
-			this.modeButtons.forEach(button => button.classList.toggle("is-active", button.dataset.reviewMode === this.mode));
-			this.templateSections.forEach(section => section.hidden = false);
-			this.freeformSections.forEach(section => section.hidden = true);
-			this.categorySelect.value = "";
+			if (this.modeButtons && this.modeButtons.forEach) {
+				this.modeButtons.forEach(button => button.classList.toggle("is-active", button.dataset.reviewMode === this.mode));
+			}
+			if (this.templateSections && this.templateSections.forEach) {
+				this.templateSections.forEach(section => section.hidden = false);
+			}
+			if (this.freeformSections && this.freeformSections.forEach) {
+				this.freeformSections.forEach(section => section.hidden = true);
+			}
+			if (this.categorySelect) this.categorySelect.value = "";
 			this.updateTagOptions();
-			this.tagSelect.disabled = true;
-			this.tagSelect.selectedIndex = 0;
-			this.freeformInput.value = "";
+			if (this.tagSelect) {
+				this.tagSelect.disabled = true;
+				this.tagSelect.selectedIndex = 0;
+			}
+			if (this.freeformInput) this.freeformInput.value = "";
 			this.lastSubmitSucceeded = null;
 			this.updateSubmitState();
 		}
@@ -250,7 +354,20 @@
 			return;
 		}
 
+		// If the root does not contain legacy category/tag selectors, assume the new
+		// review implementation (review.js) is responsible and skip this legacy sheet.
+		const legacyCategory = root.querySelector("[data-review-category]");
+		const legacyTag = root.querySelector("[data-review-tag]");
+		if (!legacyCategory || !legacyTag) {
+			return;
+		}
+
 		const sheet = new MovieReviewSheet(root);
+		if (!sheet.initialized) {
+			// Initialization failed (missing DOM nodes). Do not wire triggers.
+			return;
+		}
+
 		document.querySelectorAll("[data-review-open]").forEach(trigger => {
 			trigger.addEventListener("click", event => {
 				event.preventDefault();

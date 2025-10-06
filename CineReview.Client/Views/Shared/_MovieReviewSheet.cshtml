@@ -7,7 +7,8 @@
     {
         ["Nội dung phim"] = new[] { "Thiếu chiều sâu", "Cốt truyện khó hiểu", "Nhịp phim hợp lý", "Plot twist bất ngờ" },
         ["Diễn xuất"] = new[] { "Diễn xuất ấn tượng", "Chemistry chưa tốt", "Vai phụ nổi bật", "Lời thoại khiên cưỡng" },
-        ["Âm thanh & hình ảnh"] = new[] { "Âm thanh sống động", "Nhạc phim chưa đắt", "Kỹ xảo mãn nhãn", "Chuyển cảnh chưa mượt" },
+        ["Âm thanh & hình ảnh"] = new[] { "Âm thanh sống động", "Nhạc phim chưa đắt", "Kỹ xảo mãn nhãn", "Chuyển cảnh chưa mượt"
+},
         ["Trải nghiệm rạp"] = new[] { "Màn chiếu rõ nét", "Ghế ngồi chưa thoải mái", "Dịch vụ tốt", "Không khí sôi động" }
     };
     var catalogJson = JsonSerializer.Serialize(reviewTagCatalog);
@@ -17,29 +18,29 @@
 <div data-review-sheet-root data-review-catalog='@Html.Raw(catalogJson)' data-api-base-url="@apiBaseUrl">
     <div class="review-layer" data-review-layer hidden>
         <div class="review-layer__backdrop" data-review-close></div>
-    <section class="review-sheet">
+        <section class="review-sheet">
             <header class="review-sheet__header">
                 <div>
                     <p class="review-sheet__eyebrow">Viết review</p>
                     <h3 id="reviewSheetTitle">Chia sẻ cảm nhận của bạn</h3>
-                    <p class="review-sheet__intro">Chọn nhanh bằng tag để review hiển thị ngay hoặc nhập nội dung chi tiết (sẽ được duyệt trước khi lên trang).</p>
+                    <p class="review-sheet__intro">Chọn nhanh bằng tag để review hiển thị ngay hoặc nhập nội dung chi
+                        tiết (sẽ được duyệt trước khi lên trang).</p>
                 </div>
                 <button type="button" class="btn btn-ghost btn-sm" data-review-close>Đóng</button>
             </header>
             <div class="review-sheet__body">
                 <div class="review-sheet__mode-switch" role="tablist">
-                    <button type="button" role="tab" class="review-mode-button is-active" data-review-mode="template">Theo tag có sẵn</button>
-                    <button type="button" role="tab" class="review-mode-button" data-review-mode="freeform">Viết tự do</button>
+                    <button type="button" role="tab" class="review-mode-button is-active"
+                        data-review-mode="template">Theo tag có sẵn</button>
+                    <button type="button" role="tab" class="review-mode-button" data-review-mode="freeform">Viết tự
+                        do</button>
                 </div>
 
                 <div class="review-sheet__section" data-review-template-section>
                     <label class="form-label" for="tagMultiSelect">Chọn các tag đánh giá</label>
-                    <div class="review-sheet__hint mb-3">Chọn một hoặc nhiều tag để đánh giá. Có thể tìm kiếm theo tên.</div>
-                    <select id="tagMultiSelect" 
-                            multiple 
-                            data-tag-select
-                            class="form-select"
-                            style="display: none;">
+                    <div class="review-sheet__hint mb-3">Chọn một hoặc nhiều tag để đánh giá. Có thể tìm kiếm theo tên.
+                    </div>
+                    <select id="tagMultiSelect" multiple data-tag-select class="form-select" style="display: none;">
                         <!-- Options will be populated by JS -->
                     </select>
                 </div>
@@ -53,9 +54,11 @@
 
                 <div class="review-sheet__section" data-review-freeform-section hidden>
                     <label class="form-label" for="freeformReview">Chia sẻ chi tiết</label>
-                    <textarea id="freeformReview" class="form-control" rows="6" placeholder="Hãy kể rõ trải nghiệm rạp, cảm xúc sau khi xem…" data-review-freeform></textarea>
-                    <div class="review-sheet__hint review-sheet__hint--warning mt-2 mb-3">Review bằng chữ sẽ được đội ngũ duyệt trước khi hiển thị.</div>
-                    
+                    <textarea id="freeformReview" class="form-control" rows="6"
+                        placeholder="Hãy kể rõ trải nghiệm rạp, cảm xúc sau khi xem…" data-review-freeform></textarea>
+                    <div class="review-sheet__hint review-sheet__hint--warning mt-2 mb-3">Review bằng chữ sẽ được đội
+                        ngũ duyệt trước khi hiển thị.</div>
+
                     <div data-freeform-rating class="mt-3">
                         <!-- Rating slider will be rendered here by JS -->
                     </div>
@@ -73,7 +76,8 @@
         </section>
     </div>
 
-    <div class="review-dialog" data-review-confirm hidden role="alertdialog" aria-modal="true" aria-labelledby="reviewSubmitConfirmTitle">
+    <div class="review-dialog" data-review-confirm hidden role="alertdialog" aria-modal="true"
+        aria-labelledby="reviewSubmitConfirmTitle">
         <div class="review-dialog__backdrop"></div>
         <div class="review-dialog__panel">
             <h3 id="reviewSubmitConfirmTitle">Xác nhận gửi review</h3>
@@ -93,7 +97,8 @@
         </div>
     </div>
 
-    <div class="review-dialog" data-review-status hidden role="alertdialog" aria-modal="true" aria-labelledby="reviewStatusTitle">
+    <div class="review-dialog" data-review-status hidden role="alertdialog" aria-modal="true"
+        aria-labelledby="reviewStatusTitle">
         <div class="review-dialog__backdrop"></div>
         <div class="review-dialog__panel">
             <div class="review-dialog__status">
@@ -115,14 +120,15 @@
     </div>
 
     <!-- Dialog: Your Review -->
-    <div class="review-dialog" data-your-review-dialog hidden role="dialog" aria-modal="true" aria-labelledby="yourReviewTitle">
+    <div class="review-dialog" data-your-review-dialog hidden role="dialog" aria-modal="true"
+        aria-labelledby="yourReviewTitle">
         <div class="review-dialog__backdrop" data-your-review-close></div>
         <div class="review-dialog__panel">
             <div class="d-flex justify-content-between align-items-start mb-3">
                 <h3 id="yourReviewTitle">Review của bạn</h3>
                 <button type="button" class="btn-close" data-your-review-close aria-label="Đóng"></button>
             </div>
-            
+
             <div class="review-dialog__summary">
                 <div class="mb-3">
                     <span class="badge bg-info" data-your-review-type></span>
@@ -140,7 +146,8 @@
                     <div class="fw-semibold text-white mb-1">Tương tác:</div>
                     <div class="d-flex gap-3 text-secondary">
                         <span><i class="bi bi-hand-thumbs-up"></i> <span data-your-review-fair>0</span> công tâm</span>
-                        <span><i class="bi bi-hand-thumbs-down"></i> <span data-your-review-unfair">0</span> không công tâm</span>
+                        <span><i class="bi bi-hand-thumbs-down"></i> <span data-your-review-unfair">0</span> không công
+                            tâm</span>
                     </div>
                 </div>
                 <div>
