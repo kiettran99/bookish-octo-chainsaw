@@ -47,7 +47,7 @@ const darkPalette: ThemeOptions['palette'] = {
 }
 
 function buildThemeOptions(mode: PaletteMode): ThemeOptions {
-  const palette = mode === 'light' ? lightPalette : darkPalette
+  const palette = (mode === 'light' ? lightPalette : darkPalette) ?? {}
 
   return {
     palette,
@@ -69,8 +69,8 @@ function buildThemeOptions(mode: PaletteMode): ThemeOptions {
       MuiCssBaseline: {
         styleOverrides: {
           body: {
-            backgroundColor: palette.background?.default,
-            color: palette.text?.primary,
+            backgroundColor: palette.background && palette.background.default ? palette.background.default : undefined,
+            color: palette.text && palette.text.primary ? palette.text.primary : undefined,
           },
         },
       },

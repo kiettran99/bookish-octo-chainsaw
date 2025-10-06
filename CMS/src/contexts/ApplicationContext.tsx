@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 import type { PaletteMode } from '@mui/material'
@@ -11,7 +12,6 @@ import { readFromStorage, writeToStorage } from '@/utils/localStorage'
 import { configureApiClients, updateApiBaseUrls } from '@/services/api-client'
 import { fetchProfile } from '@/features/auth/services/auth.api'
 import { ThemedContainer } from '@/theme'
-import { unwrapErrorMessage } from '@/utils/serviceResponse'
 
 export interface StoredAuthPayload {
   token: string
@@ -49,7 +49,7 @@ interface ApplicationContextValue {
   auth: AuthState
   loginWithResponse: (payload: AuthenticateResponse) => void
   logout: () => void
-  refreshProfile: () => Promise<void>
+  refreshProfile: (tokenOverride?: string) => Promise<void>
   isAuthorized: (allowedRoles?: ReadonlyArray<CoreAccessRole | string>) => boolean
 
   platforms: PlatformDefinition[]
@@ -103,21 +103,18 @@ export function ApplicationProvider({ children }: PropsWithChildren) {
   const [themeMode, setThemeModeState] = useState<PaletteMode>(deriveInitialTheme)
   const [auth, setAuth] = useState<AuthState>(deriveStoredAuth)
   const [currentPlatform, setCurrentPlatform] = useState<PlatformDefinition>(deriveInitialPlatform)
-  const [clientsReady, setClientsReady] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
-    setClientsReady(false)
     configureApiClients({
       getToken: () => auth.token,
-      onUnauthorized: () => {
-        setAuth({ ...initialAuthState, status: 'unauthenticated' })
-        writeToStorage(STORAGE_KEYS.auth, null)
-        navigate('/login', { replace: true })
-      },
+      // onUnauthorized: () => {
+      //   setAuth({ ...initialAuthState, status: 'unauthenticated' })
+      //   writeToStorage(STORAGE_KEYS.auth, null)
+      //   navigate('/login', { replace: true })
+      // },
     })
-    setClientsReady(true)
-  }, [auth.token, navigate])
+  }, [auth.token])
 
   useEffect(() => {
     updateApiBaseUrls({
@@ -131,37 +128,47 @@ export function ApplicationProvider({ children }: PropsWithChildren) {
     writeToStorage(STORAGE_KEYS.theme, themeMode)
   }, [themeMode])
 
-  useEffect(() => {
-    if (auth.status !== 'checking' || !auth.token || !clientsReady) {
-      return
-    }
+  // useEffect(() => {
+  //   // Fast path: if no token, mark as unauthenticated immediately
+  //   if (!auth.token) {
+  //     if (auth.status !== 'unauthenticated') {
+  //       setAuth({ ...initialAuthState, status: 'unauthenticated' })
+  //       writeToStorage(STORAGE_KEYS.auth, null)
+  //     }
+  //     return
+  //   }
 
-    let active = true
+  //   // Only fetch profile if status is 'checking' and clients are ready
+  //   if (auth.status !== 'checking' || !clientsReady) {
+  //     return
+  //   }
 
-    ;(async () => {
-      try {
-        const profile = await fetchProfile()
-        if (!active) return
+  //   let active = true
 
-        setAuth({
-          status: 'authenticated',
-          token: auth.token,
-          user: profile,
-          roles: profile.roles ?? [],
-        })
-        writeToStorage(STORAGE_KEYS.auth, { token: auth.token, user: profile })
-      } catch (error) {
-        if (!active) return
-        console.warn('Failed to refresh session', error)
-        setAuth({ ...initialAuthState, status: 'unauthenticated' })
-        writeToStorage(STORAGE_KEYS.auth, null)
-        navigate('/login', { replace: true, state: { reason: unwrapErrorMessage(error) } })
-      }
-    })()
-    return () => {
-      active = false
-    }
-  }, [auth.status, auth.token, clientsReady, navigate])
+  //   ;(async () => {
+  //     try {
+  //       const profile = await fetchProfile()
+  //       if (!active) return
+
+  //       setAuth({
+  //         status: 'authenticated',
+  //         token: auth.token,
+  //         user: profile,
+  //         roles: profile.roles ?? [],
+  //       })
+  //       writeToStorage(STORAGE_KEYS.auth, { token: auth.token, user: profile })
+  //     } catch (error) {
+  //       if (!active) return
+  //       console.warn('Failed to refresh session', error)
+  //       setAuth({ ...initialAuthState, status: 'unauthenticated' })
+  //       writeToStorage(STORAGE_KEYS.auth, null)
+  //       navigate('/login', { replace: true, state: { reason: unwrapErrorMessage(error) } })
+  //     }
+  //   })()
+  //   return () => {
+  //     active = false
+  //   }
+  // }, [auth.status, auth.token, clientsReady, navigate])
 
   const setThemeMode = useCallback((mode: PaletteMode) => {
     setThemeModeState(mode)
@@ -193,15 +200,15 @@ export function ApplicationProvider({ children }: PropsWithChildren) {
     writeToStorage(STORAGE_KEYS.auth, { token: payload.jwtToken, user: payload })
   }, [])
 
-  const refreshProfile = useCallback(async () => {
-    const token = auth.token
+  const refreshProfile = useCallback(async (tokenOverride?: string) => {
+    const token = tokenOverride ?? auth.token
     if (!token) {
       throw new Error('Cannot refresh profile without authentication token')
     }
 
     setAuth((prev) => ({ ...prev, status: 'checking' }))
 
-    const profile = await fetchProfile()
+    const profile = await fetchProfile(token)
     setAuth({
       status: 'authenticated',
       token,

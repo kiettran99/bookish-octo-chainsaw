@@ -21,6 +21,10 @@ export async function clientAuthenticate(
   )
 }
 
-export async function fetchProfile(): Promise<AuthenticateResponse> {
-  return unwrapServiceResponse(identityClient.get('/api/account/profile'))
+export async function fetchProfile(authToken?: string): Promise<AuthenticateResponse> {
+  const config = authToken
+    ? { headers: { Authorization: `Bearer ${authToken}` } }
+    : undefined
+
+  return unwrapServiceResponse(identityClient.get('/api/account/profile', config))
 }
