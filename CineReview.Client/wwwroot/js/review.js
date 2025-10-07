@@ -11,10 +11,36 @@
         FREEFORM: "freeform"
     };
 
+    const REVIEW_TYPE = {
+        TAG: 0,
+        FREEFORM: 1
+    };
+
+    const REVIEWS_PER_PAGE = 5;
+
+    const REVIEW_STATUS = {
+        PENDING: 0,
+        RELEASED: 1,
+        DELETED: 2
+    };
+
+    const REVIEW_STATUS_LABELS = {
+        [REVIEW_STATUS.PENDING]: "Chờ duyệt",
+        [REVIEW_STATUS.RELEASED]: "Đã duyệt",
+        [REVIEW_STATUS.DELETED]: "Đã xóa"
+    };
+
     // Helper functions
     const toggleElement = (element, shouldShow) => {
         if (!element) return;
         element.classList.toggle("d-none", !shouldShow);
+        if (shouldShow) {
+            element.removeAttribute("hidden");
+            element.setAttribute("aria-hidden", "false");
+        } else {
+            element.setAttribute("hidden", "");
+            element.setAttribute("aria-hidden", "true");
+        }
     };
 
     const formatDate = dateString => {
@@ -54,6 +80,32 @@
         const div = document.createElement("div");
         div.textContent = text;
         return div.innerHTML;
+    };
+
+    const parseNumberOrNull = value => {
+        const numericValue = Number(value);
+        return Number.isFinite(numericValue) ? numericValue : null;
+    };
+
+    const formatDateTime = value => {
+        if (!value) return "Không xác định";
+        try {
+            return new Date(value).toLocaleString("vi-VN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        } catch {
+            return value;
+        }
+    };
+
+    const getStatusBadgeClass = status => {
+        if (status === REVIEW_STATUS.RELEASED) return "bg-success";
+        if (status === REVIEW_STATUS.PENDING) return "bg-warning text-dark";
+        return "bg-secondary";
     };
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -104,9 +156,14 @@
         const retryButton = root.querySelector("[data-review-retry]");
         const dismissStatusButton = root.querySelector("[data-review-dismiss-status]");
         const writeReviewButtons = document.querySelectorAll("[data-write-review]");
-        const viewAllReviewsButton = document.querySelector("[data-view-all-reviews]");
+        const reviewsRoot = document.querySelector("[data-review-base-url]");
         const reviewsContainer = document.querySelector("[data-reviews-container]");
+        const paginationContainer = document.querySelector("[data-review-pagination]");
         const reviewsEmptyState = document.querySelector("[data-reviews-empty]");
+        const templateExistingContainer = root.querySelector("[data-review-template-existing]");
+        const templateFormContainer = root.querySelector("[data-review-template-form]");
+        const freeformExistingContainer = root.querySelector("[data-review-freeform-existing]");
+        const freeformFormContainer = root.querySelector("[data-review-freeform-form]");
 
         // State
         let currentMode = REVIEW_MODE.TEMPLATE;
@@ -116,6 +173,383 @@
         let freeformRating = 5;
         let choicesInstance = null;
         let isSubmitting = false; // Prevent double submission
+        const fallbackBasePath = window.location.pathname
+            .replace(/\/binh-luan\/trang-\d+$/i, "")
+            .replace(/\/page-\d+$/i, "");
+        const reviewBaseUrl = reviewsRoot ? (reviewsRoot.dataset.reviewBaseUrl || "").replace(/\/+$/, "") : fallbackBasePath.replace(/\/+$/, "");
+        let currentReviewPage = reviewsRoot ? parseInt(reviewsRoot.dataset.reviewInitialPage || "1", 10) || 1 : 1;
+        let userReviewState = { tag: false, freeform: false, count: 0 };
+        let userReviewDetails = { tag: null, freeform: null };
+
+        const resolveTagNameById = (tagId) => {
+            if (!Number.isFinite(tagId)) return null;
+            const matchedTag = activeTags.find(tag => Number(tag?.id) === tagId);
+            if (!matchedTag) return null;
+            const name = typeof matchedTag.name === "string" ? matchedTag.name.trim() : null;
+            return name && name.length > 0 ? name : null;
+        };
+
+        const buildReviewMetaSection = (detail) => {
+            const ratingDisplay = Number.isFinite(detail?.rating) ? `${detail.rating}/10` : "Không xác định";
+            const fairVotesDisplay = Number.isFinite(detail?.fairVotes) ? detail.fairVotes.toString() : "0";
+            const unfairVotesDisplay = Number.isFinite(detail?.unfairVotes) ? detail.unfairVotes.toString() : "0";
+            const supportDisplay = typeof detail?.supportScoreLabel === "string" && detail.supportScoreLabel.length > 0
+                ? detail.supportScoreLabel
+                : "0.0%";
+            const createdAtDisplay = typeof detail?.createdAtText === "string" && detail.createdAtText.length > 0
+                ? detail.createdAtText
+                : "Không xác định";
+            const updatedAtDisplay = typeof detail?.updatedAtText === "string" && detail.updatedAtText.length > 0
+                ? detail.updatedAtText
+                : null;
+
+            const updatedMarkup = updatedAtDisplay
+                ? `
+                    <div class="your-review-card__meta-item">
+                        <span class="your-review-card__meta-label"><i class="bi bi-arrow-counterclockwise me-1"></i>Cập nhật</span>
+                        <span class="your-review-card__meta-value">${escapeHtml(updatedAtDisplay)}</span>
+                    </div>
+                `
+                : "";
+
+            return `
+                <div class="your-review-card__meta">
+                    <div class="your-review-card__meta-item">
+                        <span class="your-review-card__meta-label"><i class="bi bi-star-fill me-1 text-warning"></i>Điểm đánh giá</span>
+                        <span class="your-review-card__meta-value">${escapeHtml(ratingDisplay)}</span>
+                    </div>
+                    <div class="your-review-card__meta-item">
+                        <span class="your-review-card__meta-label"><i class="bi bi-hand-thumbs-up me-1"></i>Công tâm</span>
+                        <span class="your-review-card__meta-value">${escapeHtml(fairVotesDisplay)}</span>
+                    </div>
+                    <div class="your-review-card__meta-item">
+                        <span class="your-review-card__meta-label"><i class="bi bi-hand-thumbs-down me-1"></i>Không công tâm</span>
+                        <span class="your-review-card__meta-value">${escapeHtml(unfairVotesDisplay)}</span>
+                    </div>
+                    <div class="your-review-card__meta-item">
+                        <span class="your-review-card__meta-label"><i class="bi bi-activity me-1"></i>Điểm ủng hộ</span>
+                        <span class="your-review-card__meta-value">${escapeHtml(supportDisplay)}</span>
+                    </div>
+                    <div class="your-review-card__meta-item">
+                        <span class="your-review-card__meta-label"><i class="bi bi-clock-history me-1"></i>Ngày tạo</span>
+                        <span class="your-review-card__meta-value">${escapeHtml(createdAtDisplay)}</span>
+                    </div>
+                    ${updatedMarkup}
+                </div>
+            `;
+        };
+
+        const buildTagListMarkup = (tags) => {
+            if (!Array.isArray(tags) || tags.length === 0) {
+                return '<p class="text-secondary mb-0">Không có tag nào trong review này.</p>';
+            }
+
+            const itemsMarkup = tags
+                .map(item => {
+                    if (!item) return "";
+                    const labelSource = typeof item.tagName === "string" && item.tagName.trim().length > 0
+                        ? item.tagName.trim()
+                        : resolveTagNameById(item.tagId) || (Number.isFinite(item.tagId) ? `Tag #${item.tagId}` : "Tag");
+                    const ratingValue = parseNumberOrNull(item.rating);
+                    const ratingSpan = ratingValue !== null
+                        ? `<span class="badge bg-info ms-2">${ratingValue}/10</span>`
+                        : "";
+                    return `<li><i class="bi bi-tag-fill me-1"></i>${escapeHtml(labelSource)}${ratingSpan}</li>`;
+                })
+                .filter(Boolean)
+                .join("");
+
+            return itemsMarkup
+                ? `<ul class="your-review-card__tags">${itemsMarkup}</ul>`
+                : '<p class="text-secondary mb-0">Không có tag nào trong review này.</p>';
+        };
+
+        const buildReviewCardMarkup = (detail, config) => {
+            if (!detail) return "";
+
+            const typeLabel = typeof config?.label === "string" ? config.label : "Review";
+            const typeIcon = typeof config?.icon === "string" ? config.icon : "bi-chat-text";
+            const bodyMarkup = typeof config?.body === "string" && config.body.trim().length > 0
+                ? config.body
+                : '<p class="mb-0 text-secondary">Không có nội dung cho review này.</p>';
+            const statusLabel = typeof detail.statusLabel === "string" ? detail.statusLabel : "Không xác định";
+            const statusClass = detail.statusBadgeClass || "bg-secondary";
+
+            return `
+                <article class="your-review-card">
+                    <header class="your-review-card__header">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge badge-surface-info"><i class="bi ${typeIcon} me-1"></i>${escapeHtml(typeLabel)}</span>
+                            <span class="badge ${statusClass}">${escapeHtml(statusLabel)}</span>
+                        </div>
+                    </header>
+                    <div class="your-review-card__body">
+                        ${bodyMarkup}
+                    </div>
+                    ${buildReviewMetaSection(detail)}
+                </article>
+            `;
+        };
+
+        const buildTagReviewMarkup = (detail) => {
+            if (!detail) return "";
+
+            const descriptionBlock = typeof detail.description === "string" && detail.description.trim().length > 0
+                ? `<p class="mb-0">${escapeHtml(detail.description.trim()).replace(/\n/g, "<br>")}</p>`
+                : "";
+
+            const bodyParts = [buildTagListMarkup(detail.tags)];
+            if (descriptionBlock) {
+                bodyParts.push(descriptionBlock);
+            }
+
+            return buildReviewCardMarkup(detail, {
+                label: "Review theo tag",
+                icon: "bi-tags-fill",
+                body: bodyParts.join("\n")
+            });
+        };
+
+        const buildFreeformReviewMarkup = (detail) => {
+            if (!detail) return "";
+
+            const content = typeof detail.description === "string" && detail.description.trim().length > 0
+                ? `<p class="mb-0">${escapeHtml(detail.description.trim()).replace(/\n/g, "<br>")}</p>`
+                : '<p class="mb-0 text-secondary">Bạn đã gửi review không có nội dung chi tiết.</p>';
+
+            return buildReviewCardMarkup(detail, {
+                label: "Review chi tiết",
+                icon: "bi-pencil-square",
+                body: content
+            });
+        };
+
+        const renderExistingReviewCards = () => {
+            const hasTagReview = Boolean(userReviewDetails.tag);
+            const hasFreeformReview = Boolean(userReviewDetails.freeform);
+            const isTemplateMode = currentMode === REVIEW_MODE.TEMPLATE;
+            const isFreeformMode = currentMode === REVIEW_MODE.FREEFORM;
+
+            if (templateExistingContainer) {
+                if (hasTagReview) {
+                    templateExistingContainer.innerHTML = buildTagReviewMarkup(userReviewDetails.tag);
+                } else {
+                    templateExistingContainer.innerHTML = "";
+                }
+
+                const shouldShowTagCard = hasTagReview && isTemplateMode;
+                toggleElement(templateExistingContainer, shouldShowTagCard);
+            }
+
+            if (templateFormContainer) {
+                const shouldShowForm = !hasTagReview || !isTemplateMode;
+                toggleElement(templateFormContainer, shouldShowForm);
+            }
+
+            if (freeformExistingContainer) {
+                if (hasFreeformReview) {
+                    freeformExistingContainer.innerHTML = buildFreeformReviewMarkup(userReviewDetails.freeform);
+                } else {
+                    freeformExistingContainer.innerHTML = "";
+                }
+
+                const shouldShowFreeformCard = hasFreeformReview && isFreeformMode;
+                toggleElement(freeformExistingContainer, shouldShowFreeformCard);
+            }
+
+            if (freeformFormContainer) {
+                const shouldShowFreeformForm = !hasFreeformReview || !isFreeformMode;
+                toggleElement(freeformFormContainer, shouldShowFreeformForm);
+            }
+        };
+
+        const normalizeReviewDetail = (review) => {
+            if (!review) return null;
+
+            const ratingValue = parseNumberOrNull(review.rating);
+            const supportScoreValue = parseNumberOrNull(review.communicationScore);
+            const fairVotesValue = parseNumberOrNull(review.fairVotes);
+            const unfairVotesValue = parseNumberOrNull(review.unfairVotes);
+
+            const detail = {
+                type: review.type,
+                rating: ratingValue !== null ? ratingValue : null,
+                status: review.status,
+                statusLabel: REVIEW_STATUS_LABELS[review.status] || "Không xác định",
+                statusBadgeClass: getStatusBadgeClass(review.status),
+                createdAtText: formatDateTime(review.createdOnUtc),
+                updatedAtText: review.updatedOnUtc ? formatDateTime(review.updatedOnUtc) : null,
+                supportScoreLabel: supportScoreValue !== null ? `${supportScoreValue.toFixed(1)}%` : null,
+                fairVotes: fairVotesValue !== null ? fairVotesValue : null,
+                unfairVotes: unfairVotesValue !== null ? unfairVotesValue : null,
+                description: typeof review.description === "string" ? review.description : "",
+                tags: []
+            };
+
+            if (review.type === REVIEW_TYPE.TAG && Array.isArray(review.descriptionTag)) {
+                detail.tags = review.descriptionTag
+                    .map(item => {
+                        if (!item) return null;
+                        if (typeof item === "object") {
+                            const itemTagId = parseNumberOrNull(item.tagId);
+                            const itemTagName = typeof item.tagName === "string" && item.tagName.trim().length > 0
+                                ? item.tagName.trim()
+                                : null;
+                            const itemRating = parseNumberOrNull(item.rating);
+                            return {
+                                tagId: itemTagId,
+                                tagName: itemTagName,
+                                rating: itemRating
+                            };
+                        }
+
+                        if (typeof item === "string" && item.trim().length > 0) {
+                            return {
+                                tagId: null,
+                                tagName: item.trim(),
+                                rating: null
+                            };
+                        }
+
+                        return null;
+                    })
+                    .filter(Boolean);
+            }
+
+            return detail;
+        };
+
+        const updateExistingReviewDetails = (reviews) => {
+            const safeReviews = Array.isArray(reviews) ? reviews.filter(Boolean) : [];
+            const validReviews = safeReviews.filter(review => review.status !== REVIEW_STATUS.DELETED);
+
+            const selectLatestByType = (type) => {
+                const matches = validReviews.filter(review => review.type === type);
+                if (matches.length === 0) return null;
+
+                matches.sort((a, b) => {
+                    const left = new Date(a?.updatedOnUtc || a?.createdOnUtc || 0).getTime();
+                    const right = new Date(b?.updatedOnUtc || b?.createdOnUtc || 0).getTime();
+                    return right - left;
+                });
+
+                return matches[0];
+            };
+
+            const latestTagReview = selectLatestByType(REVIEW_TYPE.TAG);
+            const latestFreeformReview = selectLatestByType(REVIEW_TYPE.FREEFORM);
+
+            userReviewDetails = {
+                tag: latestTagReview ? normalizeReviewDetail(latestTagReview) : null,
+                freeform: latestFreeformReview ? normalizeReviewDetail(latestFreeformReview) : null
+            };
+
+            renderExistingReviewCards();
+        };
+
+        const getEffectiveBaseUrl = () => (reviewBaseUrl ? reviewBaseUrl : "/");
+
+        const buildReviewUrl = (page) => {
+            const targetPage = Number.isFinite(page) && page > 1 ? Math.floor(page) : 1;
+            if (targetPage <= 1) {
+                return getEffectiveBaseUrl();
+            }
+            return `${getEffectiveBaseUrl()}/page-${targetPage}`;
+        };
+
+        const updateModeAvailability = () => {
+            const templateCompleted = Boolean(userReviewDetails.tag);
+            const freeformCompleted = Boolean(userReviewDetails.freeform);
+
+            modeButtons.forEach(btn => {
+                const mode = btn.dataset.reviewMode;
+                const isTemplate = mode === REVIEW_MODE.TEMPLATE;
+                const isFreeform = mode === REVIEW_MODE.FREEFORM;
+                const isCompleted = (isTemplate && templateCompleted) || (isFreeform && freeformCompleted);
+                if (!btn.dataset.reviewLabel) {
+                    btn.dataset.reviewLabel = (btn.textContent || "").trim();
+                }
+                const baseLabel = btn.dataset.reviewLabel || btn.textContent || "";
+
+                btn.disabled = false;
+                btn.classList.remove("is-disabled");
+                btn.classList.toggle("is-complete", isCompleted);
+
+                if (isCompleted) {
+                    btn.setAttribute("data-review-status", "complete");
+                    btn.setAttribute("title", "Bạn đã gửi review này. Xem chi tiết ở bên dưới.");
+                    if (baseLabel) {
+                        btn.setAttribute("aria-label", `${baseLabel} (đã gửi)`);
+                    }
+                } else {
+                    btn.removeAttribute("data-review-status");
+                    btn.removeAttribute("title");
+                    if (baseLabel) {
+                        btn.setAttribute("aria-label", baseLabel);
+                    } else {
+                        btn.removeAttribute("aria-label");
+                    }
+                }
+            });
+
+            if (selectedTagsContainer) {
+                selectedTagsContainer.dataset.disabled = templateCompleted ? "true" : "false";
+            }
+
+            if (freeformTextarea) {
+                freeformTextarea.disabled = freeformCompleted;
+                if (freeformCompleted) {
+                    freeformTextarea.value = "";
+                    freeformTextarea.placeholder = "Bạn đã hoàn thành review chi tiết cho phim này. Nội dung review đang hiển thị ở trên.";
+                } else {
+                    freeformTextarea.placeholder = "Hãy kể rõ trải nghiệm rạp, cảm xúc sau khi xem…";
+                }
+            }
+
+            const slider = freeformRatingContainer ? freeformRatingContainer.querySelector("#freeformRating") : null;
+            if (slider) {
+                slider.disabled = freeformCompleted;
+            }
+        };
+
+        const enforceAvailableMode = () => {
+            const templateCompleted = Boolean(userReviewDetails.tag);
+            const freeformCompleted = Boolean(userReviewDetails.freeform);
+
+            if (currentMode === REVIEW_MODE.TEMPLATE && templateCompleted && !freeformCompleted) {
+                switchMode(REVIEW_MODE.FREEFORM, true);
+            }
+
+            if (currentMode === REVIEW_MODE.FREEFORM && freeformCompleted && !templateCompleted) {
+                switchMode(REVIEW_MODE.TEMPLATE, true);
+            }
+        };
+
+        const applyUserReviewState = (reviews) => {
+            const safeReviews = Array.isArray(reviews) ? reviews : [];
+            userReviewState = {
+                tag: safeReviews.some(review => review?.type === REVIEW_TYPE.TAG && review?.status !== REVIEW_STATUS.DELETED),
+                freeform: safeReviews.some(review => review?.type === REVIEW_TYPE.FREEFORM && review?.status !== REVIEW_STATUS.DELETED),
+                count: safeReviews.filter(review => review?.status !== REVIEW_STATUS.DELETED).length
+            };
+
+            updateExistingReviewDetails(safeReviews);
+
+            updateModeAvailability();
+            enforceAvailableMode();
+
+            if (userReviewState.tag) {
+                selectedTagRatings = {};
+                renderSelectedTags();
+            }
+
+            if (userReviewState.freeform) {
+                freeformRating = 5;
+                renderFreeformRating();
+            }
+
+            updateSubmitButton();
+        };
 
         // Auth helpers
         const getAuthToken = () => {
@@ -155,6 +589,7 @@
 
                 activeTags = result.data;
                 initializeTagsDropdown();
+                renderExistingReviewCards();
             } catch (error) {
                 console.error("Lỗi khi tải tags:", error);
             }
@@ -209,7 +644,7 @@
             if (!choicesInstance) return;
 
             const selectedValues = choicesInstance.getValue(true);
-            
+
             // Update selectedTagRatings: add new, remove deselected
             const newRatings = {};
             selectedValues.forEach(tagId => {
@@ -227,6 +662,11 @@
             if (!selectedTagsContainer) return;
 
             selectedTagsContainer.innerHTML = "";
+
+            if (userReviewState.tag) {
+                selectedTagsContainer.innerHTML = '<div class="alert alert-info mb-0"><i class="bi bi-info-circle me-2"></i>Bạn đã hoàn thành review dạng tag cho phim này. Nội dung review đang hiển thị ở trên.</div>';
+                return;
+            }
 
             const selectedIds = Object.keys(selectedTagRatings);
             if (selectedIds.length === 0) {
@@ -265,7 +705,7 @@
 
                 const slider = card.querySelector("input[type=range]");
                 const valueDisplay = card.querySelector(".tag-rating-value");
-                
+
                 if (slider && valueDisplay) {
                     slider.addEventListener("input", (e) => {
                         const rating = parseInt(e.target.value);
@@ -299,6 +739,15 @@
                     freeformRating = parseInt(e.target.value);
                     badge.textContent = `${freeformRating}/10`;
                 });
+
+                slider.disabled = userReviewState.freeform;
+            }
+
+            if (userReviewState.freeform) {
+                const notice = document.createElement("div");
+                notice.className = "alert alert-info mt-3 mb-0";
+                notice.innerHTML = '<i class="bi bi-info-circle me-2"></i>Bạn đã hoàn thành review chi tiết cho phim này. Nội dung review đang hiển thị ở trên.';
+                freeformRatingContainer.appendChild(notice);
             }
         };
 
@@ -308,10 +757,14 @@
                 showLoginPrompt();
                 return;
             }
+
             if (layer) {
                 layer.removeAttribute("hidden");
                 document.body.style.overflow = "hidden";
             }
+
+            renderExistingReviewCards();
+            updateSubmitButton();
         };
 
         const closeReviewSheet = () => {
@@ -327,7 +780,7 @@
             selectedTagRatings = {};
             freeformRating = 5;
             isSubmitting = false;
-            
+
             if (choicesInstance) {
                 choicesInstance.removeActiveItems();
             }
@@ -337,12 +790,19 @@
 
             renderSelectedTags();
             renderFreeformRating();
-            switchMode(REVIEW_MODE.TEMPLATE);
+            // Switch to the first available mode
+            const defaultMode = !userReviewState.tag ? REVIEW_MODE.TEMPLATE : 
+                                !userReviewState.freeform ? REVIEW_MODE.FREEFORM : REVIEW_MODE.TEMPLATE;
+            switchMode(defaultMode, true);
             updateSubmitButton();
         };
 
         // Switch mode
-        const switchMode = mode => {
+        const switchMode = (mode, _isInternal = false) => {
+            if (mode !== REVIEW_MODE.TEMPLATE && mode !== REVIEW_MODE.FREEFORM) {
+                return;
+            }
+
             currentMode = mode;
 
             modeButtons.forEach(btn => {
@@ -354,6 +814,8 @@
             const isTemplate = mode === REVIEW_MODE.TEMPLATE;
             templateSections.forEach(section => toggleElement(section, isTemplate));
             toggleElement(freeformSection, !isTemplate);
+
+            renderExistingReviewCards();
 
             updateSubmitButton();
         };
@@ -370,12 +832,23 @@
                 isValid = content.length >= 10;
             }
 
+            if ((currentMode === REVIEW_MODE.TEMPLATE && userReviewState.tag) ||
+                (currentMode === REVIEW_MODE.FREEFORM && userReviewState.freeform) ||
+                userReviewState.count >= 2) {
+                isValid = false;
+            }
+
             submitButton.disabled = !isValid || isSubmitting;
         };
 
         // Show confirm dialog
         const showConfirmDialog = () => {
             if (!confirmDialog) return;
+
+            if ((currentMode === REVIEW_MODE.TEMPLATE && userReviewState.tag) ||
+                (currentMode === REVIEW_MODE.FREEFORM && userReviewState.freeform)) {
+                return;
+            }
 
             if (currentMode === REVIEW_MODE.TEMPLATE) {
                 // Build tag ratings array - ONLY tagId and rating (no tagName)
@@ -402,7 +875,7 @@
 
                 currentReviewData = {
                     tmdbMovieId: movieId,
-                    type: 0,
+                    type: REVIEW_TYPE.TAG,
                     descriptionTag: tagRatingsArray, // Only {tagId, rating}
                     description: null,
                     rating: avgRating
@@ -423,7 +896,7 @@
 
                 currentReviewData = {
                     tmdbMovieId: movieId,
-                    type: 1,
+                    type: REVIEW_TYPE.FREEFORM,
                     descriptionTag: null,
                     description: content,
                     rating: freeformRating
@@ -548,29 +1021,56 @@
         };
 
         // Load movie reviews
-        const loadMovieReviews = async () => {
+        const loadMovieReviews = async (page = currentReviewPage) => {
             if (!reviewsContainer) return;
 
+            const targetPage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+            currentReviewPage = targetPage;
+
             try {
-                const response = await fetch(`${apiBaseUrl}/api/Review/movie/${movieId}?page=1&pageSize=6`);
+                const response = await fetch(`${apiBaseUrl}/api/Review/movie/${movieId}?page=${targetPage}&pageSize=${REVIEWS_PER_PAGE}`);
                 if (!response.ok) throw new Error("Không thể tải reviews");
 
                 const result = await response.json();
                 if (!result.isSuccess || !result.data) throw new Error("Dữ liệu không hợp lệ");
 
-                const reviews = result.data;
-                if (reviews.length === 0) {
+                const payload = result.data;
+                const items = Array.isArray(payload.items) ? payload.items : [];
+                const totalPagesValue = Number(payload.totalPages);
+                const totalPages = Number.isFinite(totalPagesValue) && totalPagesValue > 0 ? totalPagesValue : (items.length > 0 ? 1 : 0);
+                const responsePageValue = Number(payload.page);
+                const responsePage = Number.isFinite(responsePageValue) && responsePageValue > 0 ? responsePageValue : targetPage;
+
+                if (totalPages > 0 && targetPage > totalPages) {
+                    window.location.replace(buildReviewUrl(totalPages));
+                    return;
+                }
+
+                if (totalPages === 0 && targetPage !== 1) {
+                    window.location.replace(buildReviewUrl(1));
+                    return;
+                }
+
+                currentReviewPage = responsePage;
+
+                if (items.length === 0) {
                     toggleElement(reviewsContainer, false);
                     toggleElement(reviewsEmptyState, true);
                 } else {
-                    renderReviews(reviews);
+                    renderReviews(items);
                     toggleElement(reviewsContainer, true);
                     toggleElement(reviewsEmptyState, false);
                 }
+
+                renderPagination(currentReviewPage, totalPages);
             } catch (error) {
                 console.error("Lỗi khi tải reviews:", error);
                 toggleElement(reviewsContainer, false);
                 toggleElement(reviewsEmptyState, true);
+                if (paginationContainer) {
+                    paginationContainer.classList.add("d-none");
+                    paginationContainer.innerHTML = "";
+                }
             }
         };
 
@@ -598,7 +1098,7 @@
 
             // Format content - handle new {tagId, rating} format
             let displayContent = "";
-            if (review.type === 0 && review.descriptionTag) {
+            if (review.type === REVIEW_TYPE.TAG && review.descriptionTag) {
                 if (Array.isArray(review.descriptionTag)) {
                     if (review.descriptionTag.length > 0) {
                         if (typeof review.descriptionTag[0] === 'object' && review.descriptionTag[0].tagId) {
@@ -629,9 +1129,9 @@
                     <div class="community-review__content">
                         <header class="community-review__header">
                             <div class="community-review__author">
-                                ${review.userAvatar 
-                                    ? `<img src="${review.userAvatar}" alt="${userName}" class="community-review__avatar" loading="lazy" />`
-                                    : `<div class="community-review__avatar community-review__avatar--placeholder">
+                                ${review.userAvatar
+                    ? `<img src="${review.userAvatar}" alt="${userName}" class="community-review__avatar" loading="lazy" />`
+                    : `<div class="community-review__avatar community-review__avatar--placeholder">
                                         <span class="community-review__initials">${initials}</span>
                                        </div>`}
                                 <div>
@@ -664,6 +1164,69 @@
 
             return col;
         };
+
+        const renderPagination = (page, totalPages) => {
+            if (!paginationContainer) return;
+
+            paginationContainer.innerHTML = "";
+
+            const total = Number.isFinite(totalPages) ? totalPages : 0;
+            if (total <= 1) {
+                paginationContainer.classList.add("d-none");
+                return;
+            }
+
+            paginationContainer.classList.remove("d-none");
+
+            const list = document.createElement("div");
+            list.className = "review-pagination__list";
+
+            const createLink = (targetPage, label, { disabled = false, active = false } = {}) => {
+                if (disabled) {
+                    const span = document.createElement("span");
+                    span.className = "review-pagination__link is-disabled";
+                    span.innerHTML = label;
+                    return span;
+                }
+
+                const link = document.createElement("a");
+                link.className = "review-pagination__link";
+                link.href = buildReviewUrl(targetPage);
+                link.innerHTML = label;
+
+                if (active) {
+                    link.classList.add("is-active");
+                    link.setAttribute("aria-current", "page");
+                }
+
+                return link;
+            };
+
+            const clampedPage = page < 1 ? 1 : page;
+            const prevDisabled = clampedPage <= 1;
+            const nextDisabled = clampedPage >= total;
+
+            list.appendChild(createLink(clampedPage - 1, '<i class="bi bi-chevron-left"></i>', { disabled: prevDisabled }));
+
+            const windowSize = 5;
+            const halfWindow = Math.floor(windowSize / 2);
+            let start = Math.max(1, clampedPage - halfWindow);
+            let end = Math.min(total, start + windowSize - 1);
+            start = Math.max(1, end - windowSize + 1);
+
+            for (let index = start; index <= end; index += 1) {
+                list.appendChild(createLink(index, index.toString(), { active: index === clampedPage }));
+            }
+
+            list.appendChild(createLink(clampedPage + 1, '<i class="bi bi-chevron-right"></i>', { disabled: nextDisabled }));
+
+            paginationContainer.appendChild(list);
+        };
+
+        window.addEventListener("cineReview:userReviewsChanged", event => {
+            const detail = event?.detail;
+            applyUserReviewState(detail && Array.isArray(detail.reviews) ? detail.reviews : []);
+        });
 
         // Event listeners
         writeReviewButtons.forEach(button => {
@@ -749,9 +1312,15 @@
         }
 
         // Initialize
-        loadActiveTags();
+        renderSelectedTags();
         renderFreeformRating();
-        loadMovieReviews();
+        applyUserReviewState([]);
+        if (window.CineReviewButton && typeof window.CineReviewButton.getReviews === "function") {
+            applyUserReviewState(window.CineReviewButton.getReviews());
+        }
+
+        loadActiveTags();
+        loadMovieReviews(currentReviewPage);
 
         // Expose API
         window.CineReviewSheet = {

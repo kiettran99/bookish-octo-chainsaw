@@ -71,28 +71,21 @@ public sealed class MoviesController : Controller
     }
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var profile = await _movieDataProvider.GetMovieDetailAsync(id, cancellationToken);
-            if (profile is null)
-            {
-                Response.StatusCode = StatusCodes.Status404NotFound;
-            }
+    public Task<IActionResult> Detail(int id, CancellationToken cancellationToken = default)
+        => RenderDetailAsync(id, 1, cancellationToken);
 
-            return View(profile);
-        }
-        catch (OperationCanceledException)
-        {
-            return View((MovieProfile?)null);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to load movie detail for id {MovieId}", id);
-            ViewData["LoadError"] = "Không thể tải chi tiết phim. Vui lòng thử lại sau.";
-            return View((MovieProfile?)null);
-        }
+    [HttpGet("{id:int}/page-{page:int}")]
+    public Task<IActionResult> DetailPage(int id, int page, CancellationToken cancellationToken = default)
+    {
+        var sanitizedPage = page < 1 ? 1 : page;
+        return RenderDetailAsync(id, sanitizedPage, cancellationToken);
+    }
+
+    [HttpGet("{id:int}/binh-luan/trang-{page:int}")]
+    public IActionResult LegacyDetailReviews(int id, int page)
+    {
+        var sanitizedPage = page < 1 ? 1 : page;
+        return RedirectToActionPermanent(nameof(DetailPage), new { id, page = sanitizedPage });
     }
 
     [HttpGet("search")]
@@ -153,6 +146,37 @@ public sealed class MoviesController : Controller
             };
 
             return View(errorModel);
+        }
+    }
+
+    private async Task<IActionResult> RenderDetailAsync(int id, int reviewPage, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var profile = await _movieDataProvider.GetMovieDetailAsync(id, cancellationToken);
+            if (profile is null)
+            {
+                Response.StatusCode = StatusCodes.Status404NotFound;
+            }
+
+            ViewBag.ReviewPage = reviewPage;
+            ViewBag.ReviewBasePath = Url.Action(nameof(Detail), new { id }) ?? $"/movies/{id}";
+
+            return View("Detail", profile);
+        }
+        catch (OperationCanceledException)
+        {
+            ViewBag.ReviewPage = reviewPage;
+            ViewBag.ReviewBasePath = Url.Action(nameof(Detail), new { id }) ?? $"/movies/{id}";
+            return View("Detail", (MovieProfile?)null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load movie detail for id {MovieId}", id);
+            ViewData["LoadError"] = "Không thể tải chi tiết phim. Vui lòng thử lại sau.";
+            ViewBag.ReviewPage = reviewPage;
+            ViewBag.ReviewBasePath = Url.Action(nameof(Detail), new { id }) ?? $"/movies/{id}";
+            return View("Detail", (MovieProfile?)null);
         }
     }
 }

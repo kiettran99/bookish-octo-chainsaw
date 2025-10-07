@@ -134,10 +134,11 @@ export function ReviewManagementPage() {
                 ),
             },
         ],
-        [recalcMutation.isPending],
+    [recalcMutation],
     )
 
-    const rows = (reviewsQuery.data ?? []).map((review) => ({ ...review, id: review.id }))
+    const rows = (reviewsQuery.data?.items ?? []).map((review) => ({ ...review, id: review.id }))
+    const totalRows = reviewsQuery.data?.totalCount ?? 0
 
     return (
         <PageContainer
@@ -184,10 +185,11 @@ export function ReviewManagementPage() {
                     rows={rows}
                     columns={columns}
                     disableRowSelectionOnClick
+                    paginationMode="server"
                     paginationModel={paginationModel}
                     onPaginationModelChange={setPaginationModel}
                     pageSizeOptions={[10, 25, 50]}
-                    rowCount={rows.length}
+                    rowCount={totalRows}
                     loading={reviewsQuery.isLoading || reviewsQuery.isFetching}
                     slots={{ toolbar: StandardGridToolbar }}
                 />

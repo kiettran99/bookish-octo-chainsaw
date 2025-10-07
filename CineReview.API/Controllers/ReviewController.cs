@@ -124,6 +124,16 @@ public class ReviewController : CommonController
     [HttpGet("movie/{tmdbMovieId}")]
     public async Task<IActionResult> GetMovieReviews(int tmdbMovieId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
+        if (page < 1)
+        {
+            page = 1;
+        }
+
+        if (pageSize < 1)
+        {
+            pageSize = 10;
+        }
+
         var request = new ReviewListRequestModel
         {
             TmdbMovieId = tmdbMovieId,
@@ -147,6 +157,16 @@ public class ReviewController : CommonController
     [HttpGet("user/{userId}")]
     public async Task<IActionResult> GetUserReviews(int userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
+        if (page < 1)
+        {
+            page = 1;
+        }
+
+        if (pageSize < 1)
+        {
+            pageSize = 10;
+        }
+
         var request = new ReviewListRequestModel
         {
             UserId = userId,
@@ -175,7 +195,7 @@ public class ReviewController : CommonController
             UserId = userId,
             TmdbMovieId = tmdbMovieId,
             Page = 1,
-            PageSize = 1
+            PageSize = 10
         };
 
         var response = await _reviewService.GetReviewsAsync(request);
@@ -185,21 +205,10 @@ public class ReviewController : CommonController
             return BadRequest(response);
         }
 
-        // Return null if no review found
-        if (response.Data == null || !response.Data.Any())
-        {
-            return Ok(new
-            {
-                isSuccess = true,
-                data = (ReviewResponseModel?)null
-            });
-        }
-
-        // Return the first (and should be only) review
         return Ok(new
         {
             isSuccess = true,
-            data = response.Data.First()
+            data = response.Data?.Items ?? Array.Empty<ReviewResponseModel>()
         });
     }
 
@@ -221,7 +230,7 @@ public class ReviewController : CommonController
             UserId = userId.Value,
             TmdbMovieId = tmdbMovieId,
             Page = 1,
-            PageSize = 1
+            PageSize = 10
         };
 
         var response = await _reviewService.GetReviewsAsync(request);
@@ -231,21 +240,10 @@ public class ReviewController : CommonController
             return BadRequest(response);
         }
 
-        // Return null if no review found
-        if (response.Data == null || !response.Data.Any())
-        {
-            return Ok(new
-            {
-                isSuccess = true,
-                data = (ReviewResponseModel?)null
-            });
-        }
-
-        // Return the first (and should be only) review
         return Ok(new
         {
             isSuccess = true,
-            data = response.Data.First()
+            data = response.Data?.Items ?? Array.Empty<ReviewResponseModel>()
         });
     }
 

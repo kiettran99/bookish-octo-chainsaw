@@ -19,19 +19,31 @@
         if (!apiBaseUrl) return;
 
         const writeReviewButtons = document.querySelectorAll("[data-write-review]");
-        const yourReviewDialog = root.querySelector("[data-your-review-dialog]");
-        const yourReviewCloseButtons = root.querySelectorAll("[data-your-review-close]");
+        let userReviews = [];
 
-        // Dialog elements
-        const yourReviewType = root.querySelector("[data-your-review-type]");
-        const yourReviewStatus = root.querySelector("[data-your-review-status]");
-        const yourReviewContent = root.querySelector("[data-your-review-content]");
-        const yourReviewRating = root.querySelector("[data-your-review-rating]");
-        const yourReviewFair = root.querySelector("[data-your-review-fair]");
-        const yourReviewUnfair = root.querySelector("[data-your-review-unfair]");
-        const yourReviewScore = root.querySelector("[data-your-review-score]");
+        writeReviewButtons.forEach(btn => {
+            if (!btn.dataset.defaultClasses) {
+                btn.dataset.defaultClasses = btn.className;
+            }
+            if (!btn.dataset.defaultHtml) {
+                btn.dataset.defaultHtml = btn.innerHTML;
+            }
+        });
 
-        let userReview = null;
+        const REVIEW_TYPE = {
+            TAG: 0,
+            FREEFORM: 1
+        };
+
+        const getActiveReviewCount = () => userReviews.filter(review => review?.status !== 2).length;
+
+        const notifyUserReviewChange = () => {
+            window.dispatchEvent(new CustomEvent("cineReview:userReviewsChanged", {
+                detail: {
+                    reviews: userReviews.map(review => ({ ...review }))
+                }
+            }));
+        };
 
         // Get auth token
         const getAuthToken = () => {
@@ -53,113 +65,56 @@
         };
 
         // Update button state
-        const updateButtonState = (hasReview) => {
+        const updateButtonState = () => {
             const buttons = document.querySelectorAll("[data-write-review]");
-            buttons.forEach(btn => {
-                // Clone and replace to remove old event listeners
-                const newBtn = btn.cloneNode(false); // Clone without children
-                
-                newBtn.disabled = false;
-                if (hasReview) {
-                    newBtn.innerHTML = `
-                        <i class="bi bi-check-circle me-2"></i>
-                        <span>Đã review</span>
-                    `;
-                    newBtn.classList.add("btn-success");
-                    newBtn.classList.remove("btn-ghost", "btn-primary");
-                } else {
-                    newBtn.innerHTML = `Viết review`;
-                    newBtn.classList.remove("btn-success");
-                    // Keep original classes
-                }
-                
-                // Replace old button
-                btn.parentNode.replaceChild(newBtn, btn);
-                
-                // Attach new handler
-                newBtn.addEventListener("click", e => {
-                    e.preventDefault();
-                    e.stopPropagation();
+            const activeCount = getActiveReviewCount();
+            const hasTagReview = userReviews.some(r => r?.type === REVIEW_TYPE.TAG && r?.status !== 2);
+            const hasFreeformReview = userReviews.some(r => r?.type === REVIEW_TYPE.FREEFORM && r?.status !== 2);
+            const hasBothReviews = hasTagReview && hasFreeformReview;
 
-                    if (userReview) {
-                        // Show existing review dialog only
-                        showYourReviewDialog();
-                    } else {
-                        // Open review sheet
-                        if (window.CineReviewSheet && typeof window.CineReviewSheet.open === "function") {
-                            window.CineReviewSheet.open();
-                        }
+            buttons.forEach(btn => {
+                const defaultClasses = btn.dataset.defaultClasses || btn.className;
+                const defaultHtml = btn.dataset.defaultHtml || btn.innerHTML;
+
+                const newBtn = btn.cloneNode(false);
+                newBtn.dataset.defaultClasses = defaultClasses;
+                newBtn.dataset.defaultHtml = defaultHtml;
+                newBtn.className = defaultClasses;
+                newBtn.disabled = false;
+
+                if (hasBothReviews) {
+                    newBtn.innerHTML = `
+                        <i class="bi bi-file-text-fill me-2"></i>
+                        <span>Xem review của bạn</span>
+                    `;
+                    newBtn.title = "Bạn đã hoàn thành cả 2 loại review cho phim này. Click để xem chi tiết.";
+                } else if (activeCount > 0) {
+                    newBtn.innerHTML = defaultHtml;
+                    newBtn.title = `Bạn đã viết ${activeCount} review. Click để viết thêm hoặc xem lại.`;
+                } else {
+                    newBtn.innerHTML = defaultHtml;
+                    newBtn.removeAttribute("title");
+                }
+
+                btn.parentNode.replaceChild(newBtn, btn);
+
+                newBtn.addEventListener("click", event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (window.CineReviewSheet && typeof window.CineReviewSheet.open === "function") {
+                        window.CineReviewSheet.open();
                     }
                 }, true);
             });
-        };
-
-        // Show your review dialog
-        const showYourReviewDialog = () => {
-            if (!userReview || !yourReviewDialog) return;
-
-            // Type
-            if (yourReviewType) {
-                yourReviewType.textContent = userReview.type === 0 ? "Tag Review" : "Review chi tiết";
-            }
-
-            // Status
-            if (yourReviewStatus) {
-                const statusMap = {
-                    0: "Chờ duyệt",
-                    1: "Đã duyệt",
-                    2: "Đã xóa"
-                };
-                yourReviewStatus.textContent = statusMap[userReview.status] || "Không xác định";
-                yourReviewStatus.className = `badge ms-2 ${userReview.status === 1 ? "bg-success" : userReview.status === 0 ? "bg-warning" : "bg-danger"}`;
-            }
-
-            // Content
-            if (yourReviewContent) {
-                let content = "";
-                if (userReview.type === 0 && userReview.descriptionTag && userReview.descriptionTag.length > 0) {
-                    content = `[${userReview.descriptionTag.join(" / ")}]`;
-                    if (userReview.description) {
-                        content += ` ${userReview.description}`;
-                    }
-                } else {
-                    content = userReview.description || "Không có nội dung";
-                }
-                yourReviewContent.textContent = content;
-            }
-
-            // Rating
-            if (yourReviewRating) {
-                const stars = '★'.repeat(Math.min(userReview.rating, 10)) + '☆'.repeat(Math.max(0, 10 - userReview.rating));
-                yourReviewRating.textContent = stars;
-            }
-
-            // Votes
-            if (yourReviewFair) yourReviewFair.textContent = userReview.fairVotes || 0;
-            if (yourReviewUnfair) yourReviewUnfair.textContent = userReview.unfairVotes || 0;
-
-            // Score
-            if (yourReviewScore) {
-                yourReviewScore.textContent = (userReview.communicationScore || 0).toFixed(1);
-            }
-
-            // Show dialog
-            yourReviewDialog.removeAttribute("hidden");
-        };
-
-        // Hide your review dialog
-        const hideYourReviewDialog = () => {
-            if (yourReviewDialog) {
-                yourReviewDialog.setAttribute("hidden", "");
-            }
         };
 
         // Check if user has reviewed
         const checkUserReview = async () => {
             const token = getAuthToken();
             if (!token) {
-                // Not logged in, show normal button
-                updateButtonState(false);
+                userReviews = [];
+                updateButtonState();
+                notifyUserReviewChange();
                 return;
             }
 
@@ -180,30 +135,26 @@
 
                 const result = await response.json();
 
-                if (result.isSuccess && result.data) {
-                    // User has reviewed
-                    userReview = result.data;
-                    updateButtonState(true);
+                if (result.isSuccess) {
+                    const payload = result.data;
+                    if (Array.isArray(payload)) {
+                        userReviews = payload;
+                    } else if (payload) {
+                        userReviews = [payload];
+                    } else {
+                        userReviews = [];
+                    }
                 } else {
-                    // User hasn't reviewed
-                    userReview = null;
-                    updateButtonState(false);
+                    userReviews = [];
                 }
-
             } catch (error) {
                 // On error, assume no review
-                userReview = null;
-                updateButtonState(false);
+                userReviews = [];
             }
-        };
 
-        // Close dialog buttons
-        yourReviewCloseButtons.forEach(button => {
-            button.addEventListener("click", e => {
-                e.preventDefault();
-                hideYourReviewDialog();
-            });
-        });
+            updateButtonState();
+            notifyUserReviewChange();
+        };
 
         // Check on page load
         checkUserReview();
@@ -220,8 +171,7 @@
         // Expose API
         window.CineReviewButton = {
             checkUserReview,
-            showYourReview: showYourReviewDialog,
-            hideYourReview: hideYourReviewDialog
+            getReviews: () => [...userReviews]
         };
     });
 })();

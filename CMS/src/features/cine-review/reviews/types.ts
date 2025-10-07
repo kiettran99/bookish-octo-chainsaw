@@ -49,3 +49,11 @@ export interface ReviewListRequestModel {
   page?: number
   pageSize?: number
 }
+
+export interface ReviewListResponse {
+  items: ReviewResponseModel[]
+  page: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+}

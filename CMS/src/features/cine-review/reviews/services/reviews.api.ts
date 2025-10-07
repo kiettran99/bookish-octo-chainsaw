@@ -1,8 +1,8 @@
 import { cineReviewClient } from '@/services/api-client'
 import { unwrapServiceResponse } from '@/utils/serviceResponse'
-import type { ReviewListRequestModel, ReviewResponseModel } from '@/features/cine-review/reviews/types'
+import type { ReviewListRequestModel, ReviewListResponse } from '@/features/cine-review/reviews/types'
 
-export async function fetchReviews(params: ReviewListRequestModel): Promise<ReviewResponseModel[]> {
+export async function fetchReviews(params: ReviewListRequestModel): Promise<ReviewListResponse> {
   return unwrapServiceResponse(
     cineReviewClient.get('/api/review', {
       params,

@@ -40,14 +40,19 @@ public class ReviewService : IReviewService
                 return new ServiceResponse<ReviewResponseModel>("Normal review must have description");
             }
 
-            // Check if user already reviewed this movie
-            var existingReview = await _unitOfWork.Repository<Review>().GetQueryable()
+            // Check if user already reviewed this movie (limit one per type)
+            var existingReviews = await _unitOfWork.Repository<Review>().GetQueryable()
                 .Where(r => r.UserId == userId && r.TmdbMovieId == request.TmdbMovieId && r.Status != ReviewStatus.Deleted)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
-            if (existingReview != null)
-         {
-                return new ServiceResponse<ReviewResponseModel>("You have already reviewed this movie");
+            if (existingReviews.Count >= 2)
+            {
+                return new ServiceResponse<ReviewResponseModel>("You have reached the review limit for this movie");
+            }
+
+            if (existingReviews.Any(r => r.Type == request.Type))
+            {
+                return new ServiceResponse<ReviewResponseModel>("You have already submitted this type of review for this movie");
             }
 
             var review = new Review
@@ -106,6 +111,21 @@ public class ReviewService : IReviewService
             if (request.Type == ReviewType.Normal && string.IsNullOrWhiteSpace(request.Description))
             {
                 return new ServiceResponse<ReviewResponseModel>("Normal review must have description");
+            }
+
+            if (review.Type != request.Type)
+            {
+                var duplicateTypeExists = await _unitOfWork.Repository<Review>().GetQueryable()
+                    .AnyAsync(r => r.UserId == userId
+                                   && r.TmdbMovieId == review.TmdbMovieId
+                                   && r.Id != review.Id
+                                   && r.Status != ReviewStatus.Deleted
+                                   && r.Type == request.Type);
+
+                if (duplicateTypeExists)
+                {
+                    return new ServiceResponse<ReviewResponseModel>("You have already submitted this type of review for this movie");
+                }
             }
 
             review.Type = request.Type;
@@ -201,7 +221,7 @@ public class ReviewService : IReviewService
         }
     }
 
-    public async Task<ServiceResponse<List<ReviewResponseModel>>> GetReviewsAsync(ReviewListRequestModel request)
+    public async Task<ServiceResponse<PagedResult<ReviewResponseModel>>> GetReviewsAsync(ReviewListRequestModel request)
     {
         try
         {
@@ -227,10 +247,15 @@ public class ReviewService : IReviewService
                 query = query.Where(r => r.Status != ReviewStatus.Deleted);
             }
 
+            var page = request.Page < 1 ? 1 : request.Page;
+            var pageSize = request.PageSize < 1 ? 10 : request.PageSize;
+
+            var totalCount = await query.CountAsync();
+
             var reviews = await query
                 .OrderByDescending(r => r.CreatedOnUtc)
-                .Skip((request.Page - 1) * request.PageSize)
-                .Take(request.PageSize)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(r => new
                 {
                     Review = r,
@@ -261,11 +286,13 @@ public class ReviewService : IReviewService
                 UpdatedOnUtc = r.Review.UpdatedOnUtc
             }).ToList();
 
-            return new ServiceResponse<List<ReviewResponseModel>>(response);
+            var pagedResult = new PagedResult<ReviewResponseModel>(response, page, pageSize, totalCount);
+
+            return new ServiceResponse<PagedResult<ReviewResponseModel>>(pagedResult);
         }
         catch (Exception ex)
         {
-            return new ServiceResponse<List<ReviewResponseModel>>(ex.Message);
+            return new ServiceResponse<PagedResult<ReviewResponseModel>>(ex.Message);
         }
     }
 
