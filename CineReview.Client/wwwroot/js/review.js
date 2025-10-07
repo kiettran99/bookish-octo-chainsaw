@@ -189,7 +189,7 @@
             return name && name.length > 0 ? name : null;
         };
 
-        const buildReviewMetaSection = (detail) => {
+        const buildReviewMetaSection = (detail, reviewType) => {
             const ratingDisplay = Number.isFinite(detail?.rating) ? `${detail.rating}/10` : "Không xác định";
             const fairVotesDisplay = Number.isFinite(detail?.fairVotes) ? detail.fairVotes.toString() : "0";
             const unfairVotesDisplay = Number.isFinite(detail?.unfairVotes) ? detail.unfairVotes.toString() : "0";
@@ -212,12 +212,16 @@
                 `
                 : "";
 
-            return `
-                <div class="your-review-card__meta">
-                    <div class="your-review-card__meta-item">
-                        <span class="your-review-card__meta-label"><i class="bi bi-star-fill me-1 text-warning"></i>Điểm đánh giá</span>
-                        <span class="your-review-card__meta-value">${escapeHtml(ratingDisplay)}</span>
-                    </div>
+            // Hiển thị Công tâm, Không công tâm, Điểm ủng hộ khi:
+            // - Review type là TAG (0): Luôn hiển thị
+            // - Review type là FREEFORM (1): Chỉ hiển thị khi Status = Released (1)
+            const isReleased = detail?.status === REVIEW_STATUS.RELEASED;
+            const isTag = reviewType === REVIEW_TYPE.TAG;
+            const isFreeform = reviewType === REVIEW_TYPE.FREEFORM;
+            const showVotingStats = isTag || (isFreeform && isReleased);
+
+            const votingStatsMarkup = showVotingStats
+                ? `
                     <div class="your-review-card__meta-item">
                         <span class="your-review-card__meta-label"><i class="bi bi-hand-thumbs-up me-1"></i>Công tâm</span>
                         <span class="your-review-card__meta-value">${escapeHtml(fairVotesDisplay)}</span>
@@ -230,6 +234,16 @@
                         <span class="your-review-card__meta-label"><i class="bi bi-activity me-1"></i>Điểm ủng hộ</span>
                         <span class="your-review-card__meta-value">${escapeHtml(supportDisplay)}</span>
                     </div>
+                `
+                : "";
+
+            return `
+                <div class="your-review-card__meta">
+                    <div class="your-review-card__meta-item">
+                        <span class="your-review-card__meta-label"><i class="bi bi-star-fill me-1 text-warning"></i>Điểm đánh giá</span>
+                        <span class="your-review-card__meta-value">${escapeHtml(ratingDisplay)}</span>
+                    </div>
+                    ${votingStatsMarkup}
                     <div class="your-review-card__meta-item">
                         <span class="your-review-card__meta-label"><i class="bi bi-clock-history me-1"></i>Ngày tạo</span>
                         <span class="your-review-card__meta-value">${escapeHtml(createdAtDisplay)}</span>
@@ -274,19 +288,26 @@
                 : '<p class="mb-0 text-secondary">Không có nội dung cho review này.</p>';
             const statusLabel = typeof detail.statusLabel === "string" ? detail.statusLabel : "Không xác định";
             const statusClass = detail.statusBadgeClass || "bg-secondary";
+            const reviewType = detail.type;
+
+            // Chỉ hiển thị status badge cho FREEFORM type (review tự do)
+            const showStatusBadge = reviewType === REVIEW_TYPE.FREEFORM;
+            const statusBadgeMarkup = showStatusBadge
+                ? `<span class="badge ${statusClass}">${escapeHtml(statusLabel)}</span>`
+                : "";
 
             return `
                 <article class="your-review-card">
                     <header class="your-review-card__header">
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <span class="badge badge-surface-info"><i class="bi ${typeIcon} me-1"></i>${escapeHtml(typeLabel)}</span>
-                            <span class="badge ${statusClass}">${escapeHtml(statusLabel)}</span>
+                            ${statusBadgeMarkup}
                         </div>
                     </header>
                     <div class="your-review-card__body">
                         ${bodyMarkup}
                     </div>
-                    ${buildReviewMetaSection(detail)}
+                    ${buildReviewMetaSection(detail, reviewType)}
                 </article>
             `;
         };
