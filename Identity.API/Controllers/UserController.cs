@@ -19,13 +19,18 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("paging")]
-    public async Task<IActionResult> GetPagingAsync([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string searchTerm = "")
+    public async Task<IActionResult> GetPagingAsync(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] bool? isBanned = null,
+        [FromQuery] string searchTerm = "")
     {
         var response = await _userService.GetPagingAsync(new UserPagingRequestModel
         {
             PageNumber = pageNumber,
             PageSize = pageSize,
-            SearchTerm = searchTerm
+            SearchTerm = searchTerm,
+            IsBanned = isBanned
         });
 
         if (!response.IsSuccess)

@@ -70,7 +70,7 @@ export function ReviewManagementPage() {
                 headerName: 'User',
                 flex: 1,
                 minWidth: 200,
-                valueGetter: ({ row }: { row: any }) => row.userName ?? `User #${row.userId}`,
+                valueGetter: (_value, row) => row.userName ?? `User #${row.userId}`,
             },
             {
                 field: 'rating',
@@ -81,7 +81,7 @@ export function ReviewManagementPage() {
                 field: 'communicationScore',
                 headerName: 'Comm Score',
                 width: 140,
-                valueFormatter: ({ value }) => Number(value).toFixed(2),
+                valueFormatter: (value) => Number(value).toFixed(2),
             },
             {
                 field: 'status',
@@ -99,7 +99,7 @@ export function ReviewManagementPage() {
                 field: 'createdOnUtc',
                 headerName: 'Created',
                 width: 190,
-                valueFormatter: ({ value }) => (value ? new Date(value).toLocaleString() : '—'),
+                valueFormatter: (value) => (value ? new Date(value).toLocaleString() : '—'),
             },
             {
                 field: 'actions',

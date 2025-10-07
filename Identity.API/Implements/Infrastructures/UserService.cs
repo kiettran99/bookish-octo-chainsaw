@@ -107,8 +107,8 @@ public class UserService : IUserService
                         OR (u.Email LIKE '' + @SearchTerm + '%')
                         OR (u.UserName LIKE '' + @SearchTerm + '%')
                     )
-                    AND u.IsBanned = @IsBanned
-                    AND u.IsDeleted = @IsDeleted
+                    AND (@IsBanned IS NULL OR u.IsBanned = @IsBanned)
+                    AND u.IsDeleted = 0
             ",
             new Dictionary<string, object?>
             {
@@ -128,23 +128,24 @@ public class UserService : IUserService
                     u.UserName,
                     u.Avatar,
                     u.Region,
-                    --string_agg (r.Name, ',') AS [Roles],
-                    r.Name AS [Roles],
+                    GROUP_CONCAT(r.Name, ',') AS [Roles],
                     u.IsBanned,
                     u.IsDeleted,
                     u.CreatedOnUtc,
                     u.UpdatedOnUtc
                 FROM [User] u
-                    JOIN AspNetUserRoles ur on u.Id = ur.UserId
-                    JOIN AspNetRoles r on ur.RoleId = r.Id
+                    LEFT JOIN AspNetUserRoles ur on u.Id = ur.UserId
+                    LEFT JOIN AspNetRoles r on ur.RoleId = r.Id
                 WHERE
                     (
                         coalesce(@SearchTerm, '') = ''
                         OR (u.Email LIKE '' + @SearchTerm + '%')
                         OR (u.UserName LIKE '' + @SearchTerm + '%')
                     )
-                    AND u.IsBanned = @IsBanned
-                    AND u.IsDeleted = @IsDeleted
+                    AND (@IsBanned IS NULL OR u.IsBanned = @IsBanned)
+                    AND u.IsDeleted = 0
+                GROUP BY
+                    u.Id, u.FullName, u.Email, u.UserName, u.Avatar, u.Region, u.IsBanned, u.IsDeleted, u.CreatedOnUtc, u.UpdatedOnUtc
                 ORDER BY
                     u.Id desc
                 LIMIT

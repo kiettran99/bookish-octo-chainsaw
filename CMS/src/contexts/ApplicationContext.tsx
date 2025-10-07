@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 import type { PaletteMode } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
@@ -11,6 +11,7 @@ import type { PlatformDefinition } from '@/types/platform'
 import { readFromStorage, writeToStorage } from '@/utils/localStorage'
 import { configureApiClients, updateApiBaseUrls } from '@/services/api-client'
 import { fetchProfile } from '@/features/auth/services/auth.api'
+import { unwrapErrorMessage } from '@/utils/serviceResponse'
 import { ThemedContainer } from '@/theme'
 
 export interface StoredAuthPayload {
@@ -104,17 +105,19 @@ export function ApplicationProvider({ children }: PropsWithChildren) {
   const [auth, setAuth] = useState<AuthState>(deriveStoredAuth)
   const [currentPlatform, setCurrentPlatform] = useState<PlatformDefinition>(deriveInitialPlatform)
   const navigate = useNavigate()
+  const hasAttemptedInitialHydration = useRef(false)
 
   useEffect(() => {
     configureApiClients({
       getToken: () => auth.token,
-      // onUnauthorized: () => {
-      //   setAuth({ ...initialAuthState, status: 'unauthenticated' })
-      //   writeToStorage(STORAGE_KEYS.auth, null)
-      //   navigate('/login', { replace: true })
-      // },
+      onUnauthorized: () => {
+        hasAttemptedInitialHydration.current = false
+        setAuth({ ...initialAuthState, status: 'unauthenticated' })
+        writeToStorage(STORAGE_KEYS.auth, null)
+        navigate('/login', { replace: true })
+      },
     })
-  }, [auth.token])
+  }, [auth.token, navigate])
 
   useEffect(() => {
     updateApiBaseUrls({
@@ -128,47 +131,75 @@ export function ApplicationProvider({ children }: PropsWithChildren) {
     writeToStorage(STORAGE_KEYS.theme, themeMode)
   }, [themeMode])
 
-  // useEffect(() => {
-  //   // Fast path: if no token, mark as unauthenticated immediately
-  //   if (!auth.token) {
-  //     if (auth.status !== 'unauthenticated') {
-  //       setAuth({ ...initialAuthState, status: 'unauthenticated' })
-  //       writeToStorage(STORAGE_KEYS.auth, null)
-  //     }
-  //     return
-  //   }
+  const hydrateProfile = useCallback(
+    async (token: string) => {
+      setAuth((prev) => {
+        const isSameToken = prev.token === token
+        return {
+          status: 'checking',
+          token,
+          user: isSameToken ? prev.user : null,
+          roles: isSameToken ? prev.roles : [],
+        }
+      })
 
-  //   // Only fetch profile if status is 'checking' and clients are ready
-  //   if (auth.status !== 'checking' || !clientsReady) {
-  //     return
-  //   }
+      try {
+        const profile = await fetchProfile(token)
+        setAuth({
+          status: 'authenticated',
+          token,
+          user: profile,
+          roles: profile.roles ?? [],
+        })
+        writeToStorage(STORAGE_KEYS.auth, { token, user: profile })
+        return profile
+      } catch (error) {
+        setAuth({ ...initialAuthState, status: 'unauthenticated' })
+        writeToStorage(STORAGE_KEYS.auth, null)
+        throw error
+      }
+    },
+    [],
+  )
 
-  //   let active = true
+  const refreshProfile = useCallback(
+    async (tokenOverride?: string) => {
+      const token = tokenOverride ?? auth.token
+      if (!token) {
+        throw new Error('Cannot refresh profile without authentication token')
+      }
 
-  //   ;(async () => {
-  //     try {
-  //       const profile = await fetchProfile()
-  //       if (!active) return
+      hasAttemptedInitialHydration.current = true
+      await hydrateProfile(token)
+    },
+    [auth.token, hydrateProfile],
+  )
 
-  //       setAuth({
-  //         status: 'authenticated',
-  //         token: auth.token,
-  //         user: profile,
-  //         roles: profile.roles ?? [],
-  //       })
-  //       writeToStorage(STORAGE_KEYS.auth, { token: auth.token, user: profile })
-  //     } catch (error) {
-  //       if (!active) return
-  //       console.warn('Failed to refresh session', error)
-  //       setAuth({ ...initialAuthState, status: 'unauthenticated' })
-  //       writeToStorage(STORAGE_KEYS.auth, null)
-  //       navigate('/login', { replace: true, state: { reason: unwrapErrorMessage(error) } })
-  //     }
-  //   })()
-  //   return () => {
-  //     active = false
-  //   }
-  // }, [auth.status, auth.token, clientsReady, navigate])
+  useEffect(() => {
+    if (!auth.token) {
+      hasAttemptedInitialHydration.current = false
+      if (auth.status !== 'unauthenticated') {
+        setAuth({ ...initialAuthState, status: 'unauthenticated' })
+        writeToStorage(STORAGE_KEYS.auth, null)
+      }
+      return
+    }
+
+    if (auth.status !== 'checking') {
+      return
+    }
+
+    if (hasAttemptedInitialHydration.current) {
+      return
+    }
+
+    hasAttemptedInitialHydration.current = true
+
+    void hydrateProfile(auth.token).catch((error) => {
+      console.warn('Failed to refresh session', error)
+      navigate('/login', { replace: true, state: { reason: unwrapErrorMessage(error) } })
+    })
+  }, [auth.status, auth.token, hydrateProfile, navigate])
 
   const setThemeMode = useCallback((mode: PaletteMode) => {
     setThemeModeState(mode)
@@ -179,6 +210,7 @@ export function ApplicationProvider({ children }: PropsWithChildren) {
   }, [])
 
   const logout = useCallback(() => {
+    hasAttemptedInitialHydration.current = false
     setAuth({ ...initialAuthState, status: 'unauthenticated' })
     writeToStorage(STORAGE_KEYS.auth, null)
     navigate('/login', { replace: true })
@@ -199,24 +231,6 @@ export function ApplicationProvider({ children }: PropsWithChildren) {
     setAuth(nextAuth)
     writeToStorage(STORAGE_KEYS.auth, { token: payload.jwtToken, user: payload })
   }, [])
-
-  const refreshProfile = useCallback(async (tokenOverride?: string) => {
-    const token = tokenOverride ?? auth.token
-    if (!token) {
-      throw new Error('Cannot refresh profile without authentication token')
-    }
-
-    setAuth((prev) => ({ ...prev, status: 'checking' }))
-
-    const profile = await fetchProfile(token)
-    setAuth({
-      status: 'authenticated',
-      token,
-      user: profile,
-      roles: profile.roles ?? [],
-    })
-    writeToStorage(STORAGE_KEYS.auth, { token, user: profile })
-  }, [auth.token])
 
   const setPlatform = useCallback((platformId: string) => {
     const next = DEFAULT_PLATFORMS.find((platform) => platform.id === platformId)

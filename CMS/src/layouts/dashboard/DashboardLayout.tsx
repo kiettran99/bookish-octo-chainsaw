@@ -64,7 +64,6 @@ export function DashboardLayout() {
         sx={{
           flexGrow: 1,
           px: { xs: 2, md: 4 },
-          py: { xs: 10, md: 12 },
           minHeight: '100vh',
           bgcolor: (t) => (t.palette.mode === 'light' ? '#f3f5fb' : '#0b1222'),
         }}
