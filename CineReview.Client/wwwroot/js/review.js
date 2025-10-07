@@ -222,6 +222,7 @@
         const writeReviewButtons = document.querySelectorAll("[data-write-review]");
         const reviewsRoot = document.querySelector("[data-review-base-url]");
         const reviewsContainer = document.querySelector("[data-reviews-container]");
+        const reviewsSkeleton = document.querySelector("[data-reviews-skeleton]");
         const paginationContainer = document.querySelector("[data-review-pagination]");
         const reviewsEmptyState = document.querySelector("[data-reviews-empty]");
         const templateExistingContainer = root.querySelector("[data-review-template-existing]");
@@ -1206,6 +1207,14 @@
             const targetPage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
             currentReviewPage = targetPage;
 
+            // Show skeleton, hide container and empty state
+            toggleElement(reviewsSkeleton, true);
+            toggleElement(reviewsContainer, false);
+            toggleElement(reviewsEmptyState, false);
+            if (paginationContainer) {
+                paginationContainer.classList.add("d-none");
+            }
+
             try {
                 const token = getAuthToken();
                 const requestHeaders = {
@@ -1242,6 +1251,9 @@
 
                 currentReviewPage = responsePage;
 
+                // Hide skeleton
+                toggleElement(reviewsSkeleton, false);
+
                 if (items.length === 0) {
                     toggleElement(reviewsContainer, false);
                     toggleElement(reviewsEmptyState, true);
@@ -1260,6 +1272,7 @@
                 renderPagination(currentReviewPage, totalPages);
             } catch (error) {
                 console.error("Lỗi khi tải reviews:", error);
+                toggleElement(reviewsSkeleton, false);
                 toggleElement(reviewsContainer, false);
                 toggleElement(reviewsEmptyState, true);
                 if (paginationContainer) {
