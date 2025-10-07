@@ -382,4 +382,39 @@ public class ReviewService : IReviewService
             return new ServiceResponse<bool>(ex.Message);
         }
     }
+
+    public async Task<ServiceResponse<BatchRatingsResponseModel>> GetBatchRatingsForUserAsync(List<int> reviewIds, int userId)
+    {
+        try
+        {
+            if (reviewIds == null || reviewIds.Count == 0)
+            {
+                return new ServiceResponse<BatchRatingsResponseModel>(new BatchRatingsResponseModel());
+            }
+
+            // Get all user ratings for the specified review IDs
+            var userRatings = await _unitOfWork.Repository<UserRating>().GetQueryable()
+                .Where(ur => ur.UserId == userId && reviewIds.Contains(ur.ReviewId))
+                .ToListAsync();
+
+            var response = new BatchRatingsResponseModel();
+
+            foreach (var reviewId in reviewIds)
+            {
+                var rating = userRatings.FirstOrDefault(ur => ur.ReviewId == reviewId);
+                response.Ratings[reviewId] = new ReviewRatingStatusModel
+                {
+                    ReviewId = reviewId,
+                    HasRated = rating != null,
+                    RatingType = rating?.RatingType
+                };
+            }
+
+            return new ServiceResponse<BatchRatingsResponseModel>(response);
+        }
+        catch (Exception ex)
+        {
+            return new ServiceResponse<BatchRatingsResponseModel>(ex.Message);
+        }
+    }
 }

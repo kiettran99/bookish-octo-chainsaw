@@ -558,6 +558,16 @@
     font-weight: 600;
 }
 
+.community-review__action:disabled {
+    cursor: not-allowed;
+    opacity: 0.9;
+}
+
+.community-review__action.is-active {
+    transform: none;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.4);
+}
+
 .community-review__action:focus-visible {
     outline: 2px solid rgba(248, 250, 252, 0.9);
     outline-offset: 2px;
@@ -574,9 +584,22 @@
     border-top: 1px solid rgba(15, 23, 42, 0.25);
 }
 
+.community-review__action--fair.is-active {
+    opacity: 1;
+}
+
+.community-review__action--unfair.is-active {
+    opacity: 1;
+}
+
 .community-review__action:hover {
     transform: translateY(-3px);
     box-shadow: 0 16px 28px rgba(15, 23, 42, 0.25);
+}
+
+.community-review__action:disabled:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 .community-review__action-label {

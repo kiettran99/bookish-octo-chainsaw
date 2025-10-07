@@ -286,4 +286,47 @@ public class ReviewController : CommonController
 
         return Ok(response);
     }
+
+    /// <summary>
+    /// Get batch ratings status for multiple reviews for the current user
+    /// </summary>
+    [HttpGet("batch-ratings")]
+    [Authorize]
+    public async Task<IActionResult> GetBatchRatings([FromQuery] string reviewIds)
+    {
+        var userId = GetUserIdByToken();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        if (string.IsNullOrWhiteSpace(reviewIds))
+        {
+            return Ok(new
+            {
+                isSuccess = true,
+                data = new { ratings = new Dictionary<int, object>() }
+            });
+        }
+
+        try
+        {
+            var ids = reviewIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => int.Parse(id.Trim()))
+                .ToList();
+
+            var response = await _reviewService.GetBatchRatingsForUserAsync(ids, userId.Value);
+            
+            if (!response.IsSuccess)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+        catch (FormatException)
+        {
+            return BadRequest(new { isSuccess = false, message = "Invalid review IDs format" });
+        }
+    }
 }

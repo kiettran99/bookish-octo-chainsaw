@@ -12,4 +12,5 @@ public interface IReviewService
     Task<ServiceResponse<PagedResult<ReviewResponseModel>>> GetReviewsAsync(ReviewListRequestModel request);
     Task<ServiceResponse<bool>> RateReviewAsync(RateReviewRequestModel request, int userId);
     Task<ServiceResponse<bool>> RecalculateCommunicationScoreAsync(int reviewId);
+    Task<ServiceResponse<BatchRatingsResponseModel>> GetBatchRatingsForUserAsync(List<int> reviewIds, int userId);
 }

@@ -61,3 +61,15 @@ public class ReviewListRequestModel
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }
+
+public class ReviewRatingStatusModel
+{
+    public int ReviewId { get; set; }
+    public bool HasRated { get; set; }
+    public RatingType? RatingType { get; set; }
+}
+
+public class BatchRatingsResponseModel
+{
+    public Dictionary<int, ReviewRatingStatusModel> Ratings { get; set; } = new();
+}
