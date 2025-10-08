@@ -253,6 +253,27 @@ a:hover {
     backdrop-filter: blur(16px);
 }
 
+/* Optimize mobile navbar collapse animation */
+.navbar-collapse {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.navbar-collapse.collapsing {
+    height: auto !important;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.navbar-collapse.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.navbar-collapse:not(.show) {
+    display: none;
+}
+
 .main-nav-offcanvas {
     background: rgba(15, 23, 42, 0.98);
     border-left: 1px solid rgba(148, 163, 184, 0.12);
@@ -276,6 +297,14 @@ a:hover {
     .main-nav-offcanvas .offcanvas-body {
         padding: 0;
     }
+    
+    /* Reset collapse animation for desktop */
+    .navbar-collapse.collapsing {
+        height: auto !important;
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
 }
 
 .main-nav .navbar-brand {
@@ -290,6 +319,27 @@ a:hover {
     border-radius: 0.65rem;
     background: linear-gradient(135deg, rgba(37, 99, 235, 0.55), rgba(45, 212, 191, 0.85));
     box-shadow: 0 12px 24px rgba(14, 165, 233, 0.25);
+}
+
+/* Mobile optimization - reduce spacing */
+@media (max-width: 991.98px) {
+    .main-nav .container-xl {
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+    }
+    
+    .main-nav .navbar-brand {
+        font-size: 1rem;
+    }
+    
+    .main-nav .brand-icon {
+        width: 1.75rem;
+        height: 1.75rem;
+    }
+    
+    .navbar-collapse {
+        margin-top: 0.75rem;
+    }
 }
 
 .navbar-dark .navbar-nav .nav-link {
@@ -312,6 +362,22 @@ a:hover {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.5), rgba(56, 189, 248, 0.55));
 }
 
+/* Mobile nav link optimization */
+@media (max-width: 991.98px) {
+    .navbar-dark .navbar-nav {
+        padding: 0.5rem 0;
+    }
+    
+    .navbar-dark .navbar-nav .nav-item {
+        margin-bottom: 0.25rem;
+    }
+    
+    .navbar-dark .navbar-nav .nav-link {
+        padding: 0.5rem 1rem;
+        font-size: 0.95rem;
+    }
+}
+
 .nav-actions {
     width: 100%;
 }
@@ -319,6 +385,14 @@ a:hover {
 @media (min-width: 992px) {
     .nav-actions {
         width: auto;
+    }
+}
+
+/* Mobile nav actions optimization */
+@media (max-width: 991.98px) {
+    .nav-actions {
+        padding: 0.75rem 0;
+        gap: 0.65rem !important;
     }
 }
 
@@ -354,6 +428,20 @@ a:hover {
     color: #f8fafc;
 }
 
+/* Mobile search optimization */
+@media (max-width: 991.98px) {
+    .nav-search {
+        width: 100%;
+    }
+    
+    .nav-search .input-group-text,
+    .nav-search .form-control,
+    .nav-search .btn {
+        font-size: 0.9rem;
+        padding: 0.45rem 0.75rem;
+    }
+}
+
 .account-entry {
     display: flex;
     flex-direction: column;
@@ -366,6 +454,13 @@ a:hover {
         width: auto;
         align-items: center;
         flex-direction: row;
+    }
+}
+
+/* Mobile account entry optimization */
+@media (max-width: 991.98px) {
+    .account-entry {
+        margin-top: 0.5rem;
     }
 }
 
@@ -385,6 +480,15 @@ a:hover {
     border-color: rgba(59, 130, 246, 0.55);
     background: rgba(59, 130, 246, 0.2);
     color: #f8fafc;
+}
+
+/* Mobile account button optimization */
+@media (max-width: 991.98px) {
+    .account-button {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        font-size: 0.95rem;
+    }
 }
 
 .account-dropdown .account-toggle {
