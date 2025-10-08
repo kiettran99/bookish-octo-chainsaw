@@ -253,6 +253,31 @@ a:hover {
     backdrop-filter: blur(16px);
 }
 
+.main-nav-offcanvas {
+    background: rgba(15, 23, 42, 0.98);
+    border-left: 1px solid rgba(148, 163, 184, 0.12);
+    box-shadow: 0 10px 40px rgba(15, 23, 42, 0.45);
+}
+
+.main-nav-offcanvas .offcanvas-body {
+    padding: 1.5rem;
+}
+
+@media (min-width: 992px) {
+    .main-nav-offcanvas {
+        position: static;
+        transform: none;
+        visibility: visible;
+        background: transparent;
+        border-left: 0;
+        box-shadow: none;
+    }
+
+    .main-nav-offcanvas .offcanvas-body {
+        padding: 0;
+    }
+}
+
 .main-nav .navbar-brand {
     font-size: 1.1rem;
     letter-spacing: 0.04em;

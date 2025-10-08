@@ -246,6 +246,36 @@
         let userReviewState = { tag: false, freeform: false, count: 0 };
         let userReviewDetails = { tag: null, freeform: null };
         const reviewRatingState = new Map();
+        const pendingReviewActions = new Set();
+
+        const setReviewActionBusy = (button, isBusy, { withSpinner = false } = {}) => {
+            if (!button) {
+                return;
+            }
+
+            if (isBusy) {
+                button.classList.add("is-loading");
+                button.disabled = true;
+                button.setAttribute("aria-busy", "true");
+
+                if (withSpinner && !button.querySelector(".community-review__action-spinner")) {
+                    const spinner = document.createElement("span");
+                    spinner.className = "community-review__action-spinner spinner-border spinner-border-sm";
+                    spinner.setAttribute("role", "status");
+                    spinner.setAttribute("aria-hidden", "true");
+                    button.insertBefore(spinner, button.firstChild);
+                }
+            } else {
+                button.classList.remove("is-loading");
+                button.disabled = false;
+                button.removeAttribute("aria-busy");
+
+                const spinner = button.querySelector(".community-review__action-spinner");
+                if (spinner) {
+                    spinner.remove();
+                }
+            }
+        };
 
         const resolveTagNameById = (tagId) => {
             if (!Number.isFinite(tagId)) return null;
@@ -1300,9 +1330,10 @@
 
             const userName = review.userName || "Thành viên";
             const initials = safeInitials(userName);
-            const supportScore = parseNumberOrNull(review.communicationScore) ?? 0;
-            const supportTone = supportScore > 0 ? "positive" : supportScore < 0 ? "negative" : "neutral";
-            const supportValue = supportScore > 0 ? `+${supportScore.toFixed(1)}` : supportScore.toFixed(1);
+            const supportScoreRaw = parseNumberOrNull(review.communicationScore) ?? 0;
+            const supportScoreRounded = Math.round(supportScoreRaw);
+            const supportTone = supportScoreRounded > 0 ? "positive" : supportScoreRounded < 0 ? "negative" : "neutral";
+            const supportValue = supportScoreRounded > 0 ? `+${supportScoreRounded}` : supportScoreRounded.toString();
             const createdAt = formatDate(review.createdOnUtc);
             const statusBadge = review.status === 1 ? "Đã duyệt" : review.status === 0 ? "Chờ duyệt" : "Đã xóa";
 
@@ -1452,7 +1483,10 @@
             if (!container) return;
 
             const buttons = container.querySelectorAll("[data-review-action]");
+            pendingReviewActions.delete(reviewId);
+
             buttons.forEach(button => {
+                setReviewActionBusy(button, false);
                 const actionType = button.dataset.reviewAction;
                 const isFair = actionType === "fair";
                 const isUnfair = actionType === "unfair";
@@ -1460,7 +1494,6 @@
                     || (ratingType === REVIEW_RATING_TYPE.UNFAIR && isUnfair);
 
                 button.classList.toggle("is-active", isActive);
-                button.classList.remove("is-loading");
 
                 // Disable all buttons after voting (user has already rated)
                 button.disabled = true;
@@ -1484,20 +1517,26 @@
                 return;
             }
 
+            if (pendingReviewActions.has(reviewId)) {
+                return;
+            }
+            pendingReviewActions.add(reviewId);
+
             const action = button.dataset.reviewAction;
             const ratingType = action === "fair" ? REVIEW_RATING_TYPE.FAIR : REVIEW_RATING_TYPE.UNFAIR;
 
             const token = getAuthToken();
             if (!token) {
                 showLoginPrompt();
+                pendingReviewActions.delete(reviewId);
                 return;
             }
 
             const container = button.closest("[data-review-actions]");
             const siblingButtons = container ? Array.from(container.querySelectorAll("[data-review-action]")) : [button];
             siblingButtons.forEach(btn => {
-                btn.classList.add("is-loading");
-                btn.disabled = true;
+                const isClicked = btn === button;
+                setReviewActionBusy(btn, true, { withSpinner: isClicked });
             });
 
             try {
@@ -1533,9 +1572,10 @@
             } catch (error) {
                 console.error("Lỗi khi đánh giá review:", error);
                 siblingButtons.forEach(btn => {
-                    btn.classList.remove("is-loading");
-                    btn.disabled = false;
+                    setReviewActionBusy(btn, false);
                 });
+            } finally {
+                pendingReviewActions.delete(reviewId);
             }
         }
 

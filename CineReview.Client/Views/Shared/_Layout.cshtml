@@ -34,59 +34,68 @@
                         <span class="brand-icon me-2"></span>
                         <span class="fw-semibold">CineReview</span>
                     </a>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Mở điều hướng">
                         <span class="navbar-toggler-icon"></span>
                     </button>
 
-                    <div class="collapse navbar-collapse" id="mainNav">
-                        <ul class="navbar-nav me-auto mb-3 mb-lg-0">
-                            <li class="nav-item">
-                                <a class="nav-link @(isActive("Home", "Index") ? "active" : null)" asp-controller="Home" asp-action="Index">Trang chủ</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#showtimes" title="Tính năng đang phát triển">Lịch chiếu</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#communities" title="Tính năng đang phát triển">Cộng đồng</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#insights" title="Tin tức &amp; hướng dẫn">Tin tức</a>
-                            </li>
-                        </ul>
+                    <div class="offcanvas offcanvas-end offcanvas-lg main-nav-offcanvas text-bg-dark" tabindex="-1" id="mainNav" aria-labelledby="mainNavLabel">
+                        <div class="offcanvas-header d-lg-none">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="brand-icon"></span>
+                                <span class="fw-semibold" id="mainNavLabel">CineReview</span>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Đóng"></button>
+                        </div>
+                        <div class="offcanvas-body d-flex flex-column flex-lg-row gap-4 align-items-lg-center w-100">
+                            <ul class="navbar-nav flex-column flex-lg-row align-items-lg-center gap-2 gap-lg-3 mb-4 mb-lg-0 me-lg-auto">
+                                <li class="nav-item">
+                                    <a class="nav-link @(isActive("Home", "Index") ? "active" : null)" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#showtimes" title="Tính năng đang phát triển">Lịch chiếu</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#communities" title="Tính năng đang phát triển">Cộng đồng</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#insights" title="Tin tức &amp; hướng dẫn">Tin tức</a>
+                                </li>
+                            </ul>
 
-                        <div class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center nav-actions">
-                            <form class="input-group input-group-sm nav-search" role="search" method="get" asp-controller="Movies" asp-action="Search">
-                                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input class="form-control" type="search" name="query" placeholder="Tìm phim, diễn viên..." maxlength="100" value="@Context.Request.Query["query"]" />
-                                <button class="btn btn-outline-light" type="submit">Tìm</button>
-                            </form>
-                            <a class="btn btn-primary btn-sm" href="#tickets">Đặt vé nhanh</a>
-                            <div class="account-entry" data-auth-root data-identity-base-url="@Configuration["IdentityApi:BaseUrl"]">
-                                <button type="button" class="btn btn-outline-light btn-sm account-button d-flex align-items-center justify-content-center gap-2" data-auth-login>
-                                    <span>Đăng nhập</span>
-                                </button>
-                                <div class="account-skeleton d-none" data-auth-skeleton>
-                                    <span class="skeleton-avatar shimmer"></span>
-                                    <span class="skeleton-line shimmer"></span>
-                                </div>
-                                <div class="dropdown account-dropdown d-none" data-auth-account>
-                                    <button class="btn account-toggle dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <span class="account-avatar">
-                                            <img src="" alt="Ảnh đại diện" data-auth-avatar loading="lazy" class="d-none" />
-                                            <span class="account-initials" data-auth-initials></span>
-                                        </span>
-                                        <span class="account-name text-truncate" data-auth-name></span>
+                            <div class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center nav-actions">
+                                <form class="input-group input-group-sm nav-search" role="search" method="get" asp-controller="Movies" asp-action="Search">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input class="form-control" type="search" name="query" placeholder="Tìm phim, diễn viên..." maxlength="100" value="@Context.Request.Query["query"]" />
+                                    <button class="btn btn-outline-light" type="submit">Tìm</button>
+                                </form>
+                                <a class="btn btn-primary btn-sm" href="#tickets">Đặt vé nhanh</a>
+                                <div class="account-entry" data-auth-root data-identity-base-url="@Configuration["IdentityApi:BaseUrl"]">
+                                    <button type="button" class="btn btn-outline-light btn-sm account-button d-flex align-items-center justify-content-center gap-2" data-auth-login>
+                                        <span>Đăng nhập</span>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm account-dropdown-menu">
-                                        @* <li class="dropdown-header small text-muted" data-auth-email></li> *@
-                                        <li>
-                                            <button class="dropdown-item" type="button" data-auth-refresh>Thông tin cá nhân</button>
-                                        </li>
-                                        <li><hr class="dropdown-divider" /></li>
-                                        <li>
-                                            <button class="dropdown-item text-danger" type="button" data-auth-logout>Đăng xuất</button>
-                                        </li>
-                                    </ul>
+                                    <div class="account-skeleton d-none" data-auth-skeleton>
+                                        <span class="skeleton-avatar shimmer"></span>
+                                        <span class="skeleton-line shimmer"></span>
+                                    </div>
+                                    <div class="dropdown account-dropdown d-none" data-auth-account>
+                                        <button class="btn account-toggle dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <span class="account-avatar">
+                                                <img src="" alt="Ảnh đại diện" data-auth-avatar loading="lazy" class="d-none" />
+                                                <span class="account-initials" data-auth-initials></span>
+                                            </span>
+                                            <span class="account-name text-truncate" data-auth-name></span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm account-dropdown-menu">
+                                            @* <li class="dropdown-header small text-muted" data-auth-email></li> *@
+                                            <li>
+                                                <button class="dropdown-item" type="button" data-auth-refresh>Thông tin cá nhân</button>
+                                            </li>
+                                            <li><hr class="dropdown-divider" /></li>
+                                            <li>
+                                                <button class="dropdown-item text-danger" type="button" data-auth-logout>Đăng xuất</button>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>

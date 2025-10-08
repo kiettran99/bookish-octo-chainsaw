@@ -18,8 +18,8 @@
 
 .review-sheet {
     position: relative;
-    width: min(640px, 100%);
-    max-height: 90vh;
+    /* width: min(640px, 100%); */
+    max-height: 95vh;
     display: flex;
     flex-direction: column;
     background: rgba(8, 11, 19, 0.92);

@@ -616,10 +616,13 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 80px;
-    padding: 1rem 0.75rem;
+    align-self: flex-start;
+    min-width: 68px;
+    padding: 0.85rem 0.75rem;
+    gap: 0.35rem;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .community-review__support[data-tone="positive"] {
@@ -638,10 +641,9 @@
 }
 
 .community-review__support-value {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     font-weight: 700;
     line-height: 1;
-    margin-bottom: 0.25rem;
 }
 
 .community-review__support[data-tone="positive"] .community-review__support-value {
@@ -657,10 +659,10 @@
 }
 
 .community-review__support-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #9ca3af;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
 }
 
 .community-review__content {
@@ -794,6 +796,27 @@
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
+}
+
+.community-review__action-spinner {
+    display: inline-flex;
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.35rem;
+}
+
+.community-review__action.is-loading {
+    opacity: 0.8;
+}
+
+.community-review__action.is-loading .community-review__action-label,
+.community-review__action.is-loading .community-review__action-count {
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.community-review__action.is-loading i {
+    display: none;
 }
 
 .community-review__action:hover {
