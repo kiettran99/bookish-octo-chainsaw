@@ -43,13 +43,11 @@ public class ReviewResponseModel
     public long UserCommunicationScore { get; set; }
     public int TmdbMovieId { get; set; }
     public ReviewStatus Status { get; set; }
-    public double CommunicationScore { get; set; }
+    public long CommunicationScore { get; set; }
     public ReviewType Type { get; set; }
     public object? DescriptionTag { get; set; } // Can be List<string> or List<TagRatingItem> or any JSON structure
     public string? Description { get; set; }
     public int Rating { get; set; }
-    public int FairVotes { get; set; }
-    public int UnfairVotes { get; set; }
     public DateTime CreatedOnUtc { get; set; }
     public DateTime? UpdatedOnUtc { get; set; }
 }

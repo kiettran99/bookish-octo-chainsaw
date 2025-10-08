@@ -722,10 +722,48 @@
     display: inline-block;
     font-size: 0.75rem;
     padding: 0.125rem 0.5rem;
-    background: rgba(129, 140, 248, 0.2);
-    color: #818cf8;
+    background: rgba(156, 163, 175, 0.15);
+    color: #e5e7eb;
+    border: 1px solid rgba(156, 163, 175, 0.25);
     border-radius: 6px;
     margin-top: 0.25rem;
+}
+
+/* Reviewer badge variants (match tiers in spec) */
+.community-review__badge--danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171; /* red-400 */
+    border-color: rgba(239, 68, 68, 0.35);
+}
+
+.community-review__badge--warning {
+    background: rgba(251, 191, 36, 0.2);
+    color: #111827; /* text-dark for readability on yellow */
+    border-color: rgba(251, 191, 36, 0.45);
+}
+
+.community-review__badge--secondary {
+    background: rgba(156, 163, 175, 0.18);
+    color: #d1d5db;
+    border-color: rgba(156, 163, 175, 0.35);
+}
+
+.community-review__badge--info {
+    background: rgba(56, 189, 248, 0.18); /* sky-400 */
+    color: #7dd3fc; /* sky-300 */
+    border-color: rgba(56, 189, 248, 0.35);
+}
+
+.community-review__badge--primary {
+    background: rgba(37, 99, 235, 0.18); /* blue-600 */
+    color: #93c5fd; /* blue-300 */
+    border-color: rgba(37, 99, 235, 0.35);
+}
+
+.community-review__badge--success {
+    background: rgba(16, 185, 129, 0.18);
+    color: #6ee7b7; /* emerald-300 */
+    border-color: rgba(16, 185, 129, 0.35);
 }
 
 .community-review__meta {

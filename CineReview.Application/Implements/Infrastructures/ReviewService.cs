@@ -184,9 +184,7 @@ public class ReviewService : IReviewService
                 .Select(r => new
                 {
                     Review = r,
-                    User = _unitOfWork.Repository<User>().GetQueryable().FirstOrDefault(u => u.Id == r.UserId),
-                    FairVotes = r.UserRatings.Count(ur => ur.RatingType == RatingType.Fair),
-                    UnfairVotes = r.UserRatings.Count(ur => ur.RatingType == RatingType.Unfair)
+                    User = _unitOfWork.Repository<User>().GetQueryable().FirstOrDefault(u => u.Id == r.UserId)
                 })
                 .FirstOrDefaultAsync();
 
@@ -211,8 +209,6 @@ public class ReviewService : IReviewService
                     : null,
                 Description = review.Review.Description,
                 Rating = review.Review.Rating,
-                FairVotes = review.FairVotes,
-                UnfairVotes = review.UnfairVotes,
                 CreatedOnUtc = review.Review.CreatedOnUtc,
                 UpdatedOnUtc = review.Review.UpdatedOnUtc
             };
@@ -249,6 +245,12 @@ public class ReviewService : IReviewService
             {
                 // By default, don't show deleted reviews
                 query = query.Where(r => r.Status != ReviewStatus.Deleted);
+                
+                // Also filter out Normal (Freeform) reviews that are Pending
+                // Tag reviews can be shown even if Pending
+                query = query.Where(r => 
+                    r.Type == ReviewType.Tag || 
+                    (r.Type == ReviewType.Normal && r.Status == ReviewStatus.Released));
             }
 
             var page = request.Page < 1 ? 1 : request.Page;
@@ -263,9 +265,7 @@ public class ReviewService : IReviewService
                 .Select(r => new
                 {
                     Review = r,
-                    User = _unitOfWork.Repository<User>().GetQueryable().FirstOrDefault(u => u.Id == r.UserId),
-                    FairVotes = r.UserRatings.Count(ur => ur.RatingType == RatingType.Fair),
-                    UnfairVotes = r.UserRatings.Count(ur => ur.RatingType == RatingType.Unfair)
+                    User = _unitOfWork.Repository<User>().GetQueryable().FirstOrDefault(u => u.Id == r.UserId)
                 })
                 .ToListAsync();
 
@@ -285,8 +285,6 @@ public class ReviewService : IReviewService
                     : null,
                 Description = r.Review.Description,
                 Rating = r.Review.Rating,
-                FairVotes = r.FairVotes,
-                UnfairVotes = r.UnfairVotes,
                 CreatedOnUtc = r.Review.CreatedOnUtc,
                 UpdatedOnUtc = r.Review.UpdatedOnUtc
             }).ToList();
@@ -364,10 +362,11 @@ public class ReviewService : IReviewService
     {
         try
         {
-            // This method is kept for backward compatibility or manual recalculation
-            // Get the review and its owner
+            // This method is deprecated and kept only for backward compatibility
+            // Communication scores are now updated via Hangfire background jobs
+            // when users vote on reviews (Fair/Unfair)
+            
             var review = await _unitOfWork.Repository<Review>().GetQueryable()
-                .Include(r => r.UserRatings)
                 .FirstOrDefaultAsync(r => r.Id == reviewId);
 
             if (review == null)
@@ -375,47 +374,7 @@ public class ReviewService : IReviewService
                 return new ServiceResponse<bool>("Review not found");
             }
 
-            // Calculate review-level communication score (percentage)
-            var fairVotes = review.UserRatings.Count(ur => ur.RatingType == RatingType.Fair);
-            var unfairVotes = review.UserRatings.Count(ur => ur.RatingType == RatingType.Unfair);
-            var totalVotes = fairVotes + unfairVotes;
-
-            review.CommunicationScore = totalVotes > 0 ? (double)fairVotes / totalVotes * 100 : 0;
-            review.UpdatedOnUtc = DateTime.UtcNow;
-
-            _unitOfWork.Repository<Review>().Update(review);
-            await _unitOfWork.SaveChangesAsync();
-
-            // Recalculate user's total communication score from all reviews
-            var userReviews = await _unitOfWork.Repository<Review>().GetQueryable()
-                .Include(r => r.UserRatings)
-                .Where(r => r.UserId == review.UserId && r.Status != ReviewStatus.Deleted)
-                .ToListAsync();
-
-            long totalUserScore = 0;
-            foreach (var userReview in userReviews)
-            {
-                var fair = userReview.UserRatings.Count(ur => ur.RatingType == RatingType.Fair);
-                var unfair = userReview.UserRatings.Count(ur => ur.RatingType == RatingType.Unfair);
-                totalUserScore += (fair - unfair);
-            }
-
-            // Update user's communication score
-            var parameters = new Dictionary<string, object?>
-            {
-                { "score", totalUserScore },
-                { "updatedOn", DateTime.UtcNow },
-                { "userId", review.UserId }
-            };
-
-            var sql = @"
-                UPDATE User 
-                SET CommunicationScore = @score,
-                    UpdatedOnUtc = @updatedOn
-                WHERE Id = @userId";
-
-            await _unitOfWork.ExecuteAsync(sql, parameters, System.Data.CommandType.Text);
-
+            // No-op: Score is maintained by background jobs
             return new ServiceResponse<bool>(true);
         }
         catch (Exception ex)

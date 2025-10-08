@@ -172,6 +172,40 @@
         return "bg-secondary";
     };
 
+    /**
+     * Get reviewer badge based on communication score
+     * @param {number} score - User communication score
+     * @returns {object} Badge info { label: string, class: string, show: boolean }
+     * Note: returns custom variant classes for community-review__badge, not Bootstrap badges.
+     */
+    const getReviewerBadge = score => {
+        const numScore = parseNumberOrNull(score) ?? 0;
+
+        // Define badge tiers - easy to modify
+        // All badges have "Reviewer" prefix
+        if (numScore < -100) {
+            return { label: "Reviewer Toxic", class: "community-review__badge--danger", show: true };
+        }
+        if (numScore >= -100 && numScore <= -10) {
+            return { label: "Reviewer Chưa Công Tâm", class: "community-review__badge--warning", show: true };
+        }
+        if (numScore >= -9 && numScore <= 10) {
+            return { label: "Reviewer Vô Danh", class: "community-review__badge--secondary", show: true };
+        }
+        if (numScore >= 11 && numScore <= 100) {
+            return { label: "Reviewer Tập Sự", class: "community-review__badge--info", show: true };
+        }
+        if (numScore >= 101 && numScore <= 500) {
+            return { label: "Reviewer Có Tiếng", class: "community-review__badge--primary", show: true };
+        }
+        if (numScore > 500) {
+            return { label: "Reviewer Chuyên Nghiệp", class: "community-review__badge--success", show: true };
+        }
+
+        // Default: Vô Danh
+        return { label: "Reviewer Vô Danh", class: "community-review__badge--secondary", show: true };
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
         const root = document.querySelector("[data-review-sheet-root]");
         if (!root) return;
@@ -1330,12 +1364,17 @@
 
             const userName = review.userName || "Thành viên";
             const initials = safeInitials(userName);
-            const supportScoreRaw = parseNumberOrNull(review.communicationScore) ?? 0;
+            const supportScoreRaw = parseNumberOrNull(review.userCommunicationScore) ?? 0;
             const supportScoreRounded = Math.round(supportScoreRaw);
             const supportTone = supportScoreRounded > 0 ? "positive" : supportScoreRounded < 0 ? "negative" : "neutral";
             const supportValue = supportScoreRounded > 0 ? `+${supportScoreRounded}` : supportScoreRounded.toString();
             const createdAt = formatDate(review.createdOnUtc);
-            const statusBadge = review.status === 1 ? "Đã duyệt" : review.status === 0 ? "Chờ duyệt" : "Đã xóa";
+            
+            // Get reviewer badge based on communication score
+            const reviewerBadge = getReviewerBadge(review.userCommunicationScore);
+            const badgeMarkup = reviewerBadge.show 
+                ? `<span class="community-review__badge ${reviewerBadge.class}">${escapeHtml(reviewerBadge.label)}</span>`
+                : "";
 
             // Calculate rating for display
             let displayRating = parseNumberOrNull(review.rating) ?? 0;
@@ -1431,7 +1470,7 @@
                                        </div>`}
                                 <div>
                                     <span class="community-review__name">${escapeHtml(userName)}</span>
-                                    <span class="community-review__badge">${statusBadge}</span>
+                                    ${badgeMarkup}
                                 </div>
                             </div>
                             <div class="community-review__meta">

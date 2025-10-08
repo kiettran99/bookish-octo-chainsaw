@@ -12,7 +12,7 @@ public class Review : Entity
 
     public ReviewStatus Status { get; set; }
 
-    public double CommunicationScore { get; set; }
+    public long CommunicationScore { get; set; }
 
     public ReviewType Type { get; set; }
 
