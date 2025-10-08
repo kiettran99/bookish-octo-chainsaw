@@ -67,6 +67,11 @@ public class UnitOfWork : IUnitOfWork, IDisposable
         return (IGenericRepository<TEntity>)repositories[type]!;
     }
 
+    public DbContext GetDbContext()
+    {
+        return context;
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await context.SaveChangesAsync(cancellationToken);

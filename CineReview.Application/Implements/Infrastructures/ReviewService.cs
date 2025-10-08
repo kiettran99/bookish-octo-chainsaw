@@ -7,16 +7,19 @@ using CineReview.Domain.Models.ReviewModels;
 using Common.Models;
 using Common.SeedWork;
 using Microsoft.EntityFrameworkCore;
+using Hangfire;
 
 namespace CineReview.Application.Implements.Infrastructures;
 
 public class ReviewService : IReviewService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICommunicationScoreService _communicationScoreService;
 
-    public ReviewService(IUnitOfWork unitOfWork)
+    public ReviewService(IUnitOfWork unitOfWork, ICommunicationScoreService communicationScoreService)
     {
         _unitOfWork = unitOfWork;
+        _communicationScoreService = communicationScoreService;
     }
 
     public async Task<ServiceResponse<ReviewResponseModel>> CreateReviewAsync(CreateReviewRequestModel request, int userId)
@@ -198,6 +201,7 @@ public class ReviewService : IReviewService
                 UserId = review.Review.UserId,
                 UserName = review.User?.UserName,
                 UserAvatar = review.User?.Avatar,
+                UserCommunicationScore = review.User?.CommunicationScore ?? 0,
                 TmdbMovieId = review.Review.TmdbMovieId,
                 Status = review.Review.Status,
                 CommunicationScore = review.Review.CommunicationScore,
@@ -271,6 +275,7 @@ public class ReviewService : IReviewService
                 UserId = r.Review.UserId,
                 UserName = r.User?.UserName,
                 UserAvatar = r.User?.Avatar,
+                UserCommunicationScore = r.User?.CommunicationScore ?? 0,
                 TmdbMovieId = r.Review.TmdbMovieId,
                 Status = r.Review.Status,
                 CommunicationScore = r.Review.CommunicationScore,
@@ -317,6 +322,8 @@ public class ReviewService : IReviewService
             var existingRating = await _unitOfWork.Repository<UserRating>().GetQueryable()
                 .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.ReviewId == request.ReviewId);
 
+            int? previousRatingType = existingRating?.RatingType == null ? null : (int)existingRating.RatingType;
+
             if (existingRating != null)
             {
                 // Update existing rating
@@ -338,8 +345,12 @@ public class ReviewService : IReviewService
 
             await _unitOfWork.SaveChangesAsync();
 
-            // Recalculate communication score
-            await RecalculateCommunicationScoreAsync(request.ReviewId);
+            // Enqueue Hangfire background job to update communication score
+            BackgroundJob.Enqueue(() => _communicationScoreService.UpdateCommunicationScoreAsync(
+                review.UserId, 
+                request.ReviewId, 
+                previousRatingType, 
+                (int)request.RatingType));
 
             return new ServiceResponse<bool>(true);
         }
@@ -353,6 +364,8 @@ public class ReviewService : IReviewService
     {
         try
         {
+            // This method is kept for backward compatibility or manual recalculation
+            // Get the review and its owner
             var review = await _unitOfWork.Repository<Review>().GetQueryable()
                 .Include(r => r.UserRatings)
                 .FirstOrDefaultAsync(r => r.Id == reviewId);
@@ -362,18 +375,46 @@ public class ReviewService : IReviewService
                 return new ServiceResponse<bool>("Review not found");
             }
 
+            // Calculate review-level communication score (percentage)
             var fairVotes = review.UserRatings.Count(ur => ur.RatingType == RatingType.Fair);
             var unfairVotes = review.UserRatings.Count(ur => ur.RatingType == RatingType.Unfair);
             var totalVotes = fairVotes + unfairVotes;
 
-            // Calculate communication score as percentage of fair votes
-            // Formula: (fairVotes / totalVotes) * 100
-            // If no votes, score is 0
             review.CommunicationScore = totalVotes > 0 ? (double)fairVotes / totalVotes * 100 : 0;
             review.UpdatedOnUtc = DateTime.UtcNow;
 
             _unitOfWork.Repository<Review>().Update(review);
             await _unitOfWork.SaveChangesAsync();
+
+            // Recalculate user's total communication score from all reviews
+            var userReviews = await _unitOfWork.Repository<Review>().GetQueryable()
+                .Include(r => r.UserRatings)
+                .Where(r => r.UserId == review.UserId && r.Status != ReviewStatus.Deleted)
+                .ToListAsync();
+
+            long totalUserScore = 0;
+            foreach (var userReview in userReviews)
+            {
+                var fair = userReview.UserRatings.Count(ur => ur.RatingType == RatingType.Fair);
+                var unfair = userReview.UserRatings.Count(ur => ur.RatingType == RatingType.Unfair);
+                totalUserScore += (fair - unfair);
+            }
+
+            // Update user's communication score
+            var parameters = new Dictionary<string, object?>
+            {
+                { "score", totalUserScore },
+                { "updatedOn", DateTime.UtcNow },
+                { "userId", review.UserId }
+            };
+
+            var sql = @"
+                UPDATE User 
+                SET CommunicationScore = @score,
+                    UpdatedOnUtc = @updatedOn
+                WHERE Id = @userId";
+
+            await _unitOfWork.ExecuteAsync(sql, parameters, System.Data.CommandType.Text);
 
             return new ServiceResponse<bool>(true);
         }

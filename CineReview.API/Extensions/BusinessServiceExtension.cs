@@ -10,6 +10,7 @@ public static class BusinessServiceExtension
         // Inject Services
         services.AddScoped<IReviewService, ReviewService>();
         services.AddScoped<ITagService, TagService>();
+        services.AddScoped<ICommunicationScoreService, CommunicationScoreService>();
 
         return services;
     }

@@ -27,4 +27,6 @@ public class User : Entity
     public bool IsDeleted { get; set; }
 
     public ERegion Region { get; set; }
+
+    public long CommunicationScore { get; set; }
 }

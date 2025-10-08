@@ -40,6 +40,7 @@ public class ReviewResponseModel
     public int UserId { get; set; }
     public string? UserName { get; set; }
     public string? UserAvatar { get; set; }
+    public long UserCommunicationScore { get; set; }
     public int TmdbMovieId { get; set; }
     public ReviewStatus Status { get; set; }
     public double CommunicationScore { get; set; }
