@@ -1363,6 +1363,7 @@
             col.className = "col-12";
 
             const userName = review.userName || "Thành viên";
+            const userFullName = review.userFullName || userName;
             const initials = safeInitials(userName);
             const supportScoreRaw = parseNumberOrNull(review.userCommunicationScore) ?? 0;
             const supportScoreRounded = Math.round(supportScoreRaw);
@@ -1469,7 +1470,7 @@
                                         <span class="community-review__initials">${initials}</span>
                                        </div>`}
                                 <div>
-                                    <span class="community-review__name">${escapeHtml(userName)}</span>
+                                    <span class="community-review__name">${escapeHtml(userFullName)}</span>
                                     ${badgeMarkup}
                                 </div>
                             </div>
