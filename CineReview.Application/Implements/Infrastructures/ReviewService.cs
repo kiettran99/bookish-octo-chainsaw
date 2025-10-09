@@ -175,6 +175,42 @@ public class ReviewService : IReviewService
         }
     }
 
+    public async Task<ServiceResponse<bool>> ApproveReviewAsync(int reviewId)
+    {
+        try
+        {
+            var review = await _unitOfWork.Repository<Review>().GetQueryable()
+                .FirstOrDefaultAsync(r => r.Id == reviewId);
+
+            if (review == null)
+            {
+                return new ServiceResponse<bool>("Review not found");
+            }
+
+            if (review.Status == ReviewStatus.Deleted)
+            {
+                return new ServiceResponse<bool>("Cannot approve deleted review");
+            }
+
+            if (review.Status == ReviewStatus.Released)
+            {
+                return new ServiceResponse<bool>("Review is already approved");
+            }
+
+            review.Status = ReviewStatus.Released;
+            review.UpdatedOnUtc = DateTime.UtcNow;
+
+            _unitOfWork.Repository<Review>().Update(review);
+            await _unitOfWork.SaveChangesAsync();
+
+            return new ServiceResponse<bool>(true);
+        }
+        catch (Exception ex)
+        {
+            return new ServiceResponse<bool>(ex.Message);
+        }
+    }
+
     public async Task<ServiceResponse<ReviewResponseModel>> GetReviewByIdAsync(int reviewId)
     {
         try
@@ -252,6 +288,33 @@ public class ReviewService : IReviewService
                 query = query.Where(r => 
                     r.Type == ReviewType.Tag || 
                     (r.Type == ReviewType.Normal && r.Status == ReviewStatus.Released));
+            }
+
+            // Filter by ReviewType
+            if (request.Type.HasValue)
+            {
+                query = query.Where(r => r.Type == request.Type.Value);
+            }
+
+            // Filter by date range
+            if (request.DateFrom.HasValue)
+            {
+                query = query.Where(r => r.CreatedOnUtc >= request.DateFrom.Value);
+            }
+
+            if (request.DateTo.HasValue)
+            {
+                // Add one day to include the entire end date
+                var dateTo = request.DateTo.Value.Date.AddDays(1);
+                query = query.Where(r => r.CreatedOnUtc < dateTo);
+            }
+
+            // Filter by Email - need to join with User table
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                var userQuery = _unitOfWork.Repository<User>().GetQueryable()
+                    .Where(u => u.Email.Contains(request.Email));
+                query = query.Where(r => userQuery.Any(u => u.Id == r.UserId));
             }
 
             var page = request.Page < 1 ? 1 : request.Page;

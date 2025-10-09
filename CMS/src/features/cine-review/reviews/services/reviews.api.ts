@@ -10,6 +10,14 @@ export async function fetchReviews(params: ReviewListRequestModel): Promise<Revi
   )
 }
 
+export async function approveReview(reviewId: number): Promise<boolean> {
+  return unwrapServiceResponse(cineReviewClient.post(`/api/review/${reviewId}/approve`))
+}
+
+export async function deleteReview(reviewId: number): Promise<boolean> {
+  return unwrapServiceResponse(cineReviewClient.delete(`/api/review/${reviewId}`))
+}
+
 export async function recalculateReviewScore(reviewId: number): Promise<boolean> {
   return unwrapServiceResponse(cineReviewClient.post(`/api/review/${reviewId}/recalculate-score`))
 }

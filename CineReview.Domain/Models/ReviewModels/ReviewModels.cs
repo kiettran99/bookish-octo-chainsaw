@@ -58,6 +58,10 @@ public class ReviewListRequestModel
     public int? TmdbMovieId { get; set; }
     public int? UserId { get; set; }
     public ReviewStatus? Status { get; set; }
+    public ReviewType? Type { get; set; }
+    public string? Email { get; set; }
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }

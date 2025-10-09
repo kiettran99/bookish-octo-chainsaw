@@ -87,6 +87,23 @@ public class ReviewController : CommonController
     }
 
     /// <summary>
+    /// Approve a pending review (Admin endpoint - sets status to Released)
+    /// </summary>
+    [HttpPost("{reviewId}/approve")]
+    [Authorize]
+    public async Task<IActionResult> ApproveReview(int reviewId)
+    {
+        var response = await _reviewService.ApproveReviewAsync(reviewId);
+        
+        if (!response.IsSuccess)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    /// <summary>
     /// Get a specific review by ID
     /// </summary>
     [HttpGet("{reviewId}")]

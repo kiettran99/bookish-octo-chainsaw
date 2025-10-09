@@ -46,6 +46,10 @@ export interface ReviewListRequestModel {
   tmdbMovieId?: number
   userId?: number
   status?: ReviewStatus
+  type?: ReviewType
+  email?: string
+  dateFrom?: string
+  dateTo?: string
   page?: number
   pageSize?: number
 }

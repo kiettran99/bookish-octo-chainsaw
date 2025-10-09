@@ -3,6 +3,7 @@ import {
   Box,
   Chip,
   Stack,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
@@ -28,6 +29,20 @@ export function UserListPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const queryClient = useQueryClient()
 
+  // Date filters: default to 60 days ago to today
+  const getDefaultDateFrom = () => {
+    const date = new Date()
+    date.setDate(date.getDate() - 60)
+    return date.toISOString().split('T')[0]
+  }
+  
+  const getDefaultDateTo = () => {
+    return new Date().toISOString().split('T')[0]
+  }
+
+  const [dateFrom, setDateFrom] = useState<string>(getDefaultDateFrom())
+  const [dateTo, setDateTo] = useState<string>(getDefaultDateTo())
+
   const { data: roles = [] } = useQuery({
     queryKey: ['roles'],
     queryFn: fetchRoles,
@@ -42,9 +57,11 @@ export function UserListPage() {
         pageSize: paginationModel.pageSize,
         quickFilter,
         status: statusFilter,
+        dateFrom,
+        dateTo,
       },
     ],
-    [paginationModel.page, paginationModel.pageSize, quickFilter, statusFilter],
+    [paginationModel.page, paginationModel.pageSize, quickFilter, statusFilter, dateFrom, dateTo],
   )
 
   const usersQuery = useQuery<UserPagingResponse>({
@@ -55,6 +72,8 @@ export function UserListPage() {
         pageSize: paginationModel.pageSize,
         searchTerm: quickFilter || undefined,
         isBanned: statusFilter === 'banned' ? true : statusFilter === 'active' ? false : undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
       }),
     placeholderData: (previousData) => previousData,
   })
@@ -172,6 +191,29 @@ export function UserListPage() {
         </ToggleButtonGroup>
       }
     >
+      <Stack spacing={2} mb={2}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+          <TextField
+            label="Date from"
+            value={dateFrom}
+            onChange={(event) => setDateFrom(event.target.value)}
+            type="date"
+            size="small"
+            InputLabelProps={{ shrink: true }}
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Date to"
+            value={dateTo}
+            onChange={(event) => setDateTo(event.target.value)}
+            type="date"
+            size="small"
+            InputLabelProps={{ shrink: true }}
+            sx={{ flex: 1 }}
+          />
+        </Stack>
+      </Stack>
+
       <Box sx={{ height: 600, width: '100%' }}>
         <DataGrid
           rows={rows}

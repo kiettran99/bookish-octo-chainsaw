@@ -6,6 +6,7 @@ import {
   Chip,
   IconButton,
   Stack,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
@@ -33,6 +34,7 @@ import { createTag, deleteTag, fetchTags, updateTag } from '@/features/cine-revi
 export function TagManagementPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [categoryFilter, setCategoryFilter] = useState<TagCategory | 'all'>('all')
+  const [searchTerm, setSearchTerm] = useState<string>('')
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
   const [selectedTag, setSelectedTag] = useState<TagResponseModel | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -47,6 +49,18 @@ export function TagManagementPage() {
         category: categoryFilter === 'all' ? undefined : categoryFilter,
       }),
   })
+
+  // Filter tags by search term on client side
+  const filteredTags = useMemo(() => {
+    const tags = tagsQuery.data ?? []
+    if (!searchTerm) return tags
+    
+    const search = searchTerm.toLowerCase()
+    return tags.filter((tag) => 
+      tag.name.toLowerCase().includes(search) ||
+      tag.categoryName.toLowerCase().includes(search)
+    )
+  }, [tagsQuery.data, searchTerm])
 
   const createMutation = useMutation({
     mutationFn: createTag,
@@ -113,11 +127,10 @@ export function TagManagementPage() {
         minWidth: 200,
       },
       {
-        field: 'category',
+        field: 'categoryName',
         headerName: 'Category',
         flex: 1,
         minWidth: 160,
-        valueFormatter: ({ value }) => TAG_CATEGORY_LABELS[value as TagCategory],
       },
       {
         field: 'isActive',
@@ -153,7 +166,7 @@ export function TagManagementPage() {
     [],
   )
 
-  const rows = (tagsQuery.data ?? []).map((tag) => ({ ...tag, id: tag.id }))
+  const rows = filteredTags.map((tag) => ({ ...tag, id: tag.id }))
 
   return (
     <PageContainer
@@ -167,34 +180,44 @@ export function TagManagementPage() {
         </Stack>
       }
     >
-      <Stack spacing={2} mb={2} direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'stretch', sm: 'center' }}>
-        <ToggleButtonGroup
-          value={statusFilter}
-          exclusive
-          onChange={(_, value) => value && setStatusFilter(value)}
+      <Stack spacing={2} mb={2}>
+        <TextField
+          label="Search by name or category"
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
           size="small"
-        >
-          <ToggleButton value="all">All</ToggleButton>
-          <ToggleButton value="active">Active</ToggleButton>
-          <ToggleButton value="inactive">Inactive</ToggleButton>
-        </ToggleButtonGroup>
+          placeholder="Type to filter tags..."
+        />
+        
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <ToggleButtonGroup
+            value={statusFilter}
+            exclusive
+            onChange={(_, value) => value && setStatusFilter(value)}
+            size="small"
+          >
+            <ToggleButton value="all">All</ToggleButton>
+            <ToggleButton value="active">Active</ToggleButton>
+            <ToggleButton value="inactive">Inactive</ToggleButton>
+          </ToggleButtonGroup>
 
-        <ToggleButtonGroup
-          value={categoryFilter}
-          exclusive
-          onChange={(_, value) => {
-            if (value === null) return
-            setCategoryFilter(value as TagCategory | 'all')
-          }}
-          size="small"
-        >
-          <ToggleButton value="all">All categories</ToggleButton>
-          {Object.entries(TAG_CATEGORY_LABELS).map(([key, label]) => (
-            <ToggleButton key={key} value={Number(key)}>
-              {label}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
+          <ToggleButtonGroup
+            value={categoryFilter}
+            exclusive
+            onChange={(_, value) => {
+              if (value === null) return
+              setCategoryFilter(value as TagCategory | 'all')
+            }}
+            size="small"
+          >
+            <ToggleButton value="all">All categories</ToggleButton>
+            {Object.entries(TAG_CATEGORY_LABELS).map(([key, label]) => (
+              <ToggleButton key={key} value={Number(key)}>
+                {label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Stack>
       </Stack>
 
       <Box sx={{ height: 560 }}>
