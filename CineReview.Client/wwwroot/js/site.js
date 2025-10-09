@@ -395,8 +395,38 @@ document.addEventListener("DOMContentLoaded", () => {
 	const titleNode = modal.querySelector("[data-video-title]");
 	const closeTriggers = modal.querySelectorAll("[data-video-close]");
 	const backdrop = modal.querySelector(".video-modal__backdrop");
+	const dialog = modal.querySelector(".video-modal__dialog");
+	const header = modal.querySelector(".video-modal__header");
+	const player = modal.querySelector(".video-modal__player");
 	const body = document.body;
 	let lastActiveElement = null;
+	let detachResize = null;
+
+	// Resize modal to keep a 16:9 player while fitting within viewport
+	const resizeVideoModal = () => {
+		if (!dialog || !player) return;
+		// Available inner size excluding modal padding
+		const modalStyles = getComputedStyle(modal);
+		const padX = parseFloat(modalStyles.paddingLeft) + parseFloat(modalStyles.paddingRight);
+		const padY = parseFloat(modalStyles.paddingTop) + parseFloat(modalStyles.paddingBottom);
+		const availW = window.innerWidth - padX;
+		const availH = window.innerHeight - padY;
+		const headerH = header ? header.offsetHeight : 0;
+
+		// Max player height constrained by height minus header
+		const maxPlayerH = Math.max(0, availH - headerH);
+		// Width-constrained player height (16:9)
+		const heightFromWidth = availW * (9 / 16);
+		// Choose the smaller to ensure it fits both dimensions
+		const playerH = Math.min(maxPlayerH, heightFromWidth);
+		const dialogW = Math.min(availW, Math.round(playerH * (16 / 9)));
+		const dialogH = Math.round(playerH + headerH);
+
+		// Apply dimensions
+		dialog.style.width = `${dialogW}px`;
+		dialog.style.height = `${dialogH}px`;
+		player.style.height = `${Math.round(playerH)}px`;
+	};
 
 	const closeModal = () => {
 		if (!modal.hasAttribute("hidden")) {
@@ -409,6 +439,18 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 			if (titleNode) {
 				titleNode.textContent = "";
+			}
+			// Cleanup inline sizes and listeners
+			if (dialog) {
+				dialog.style.width = "";
+				dialog.style.height = "";
+			}
+			if (player) {
+				player.style.height = "";
+			}
+			if (detachResize) {
+				window.removeEventListener("resize", detachResize);
+				detachResize = null;
 			}
 			if (lastActiveElement && typeof lastActiveElement.focus === "function") {
 				lastActiveElement.focus();
@@ -437,6 +479,12 @@ document.addEventListener("DOMContentLoaded", () => {
 		modal.removeAttribute("hidden");
 		modal.setAttribute("aria-hidden", "false");
 		body.classList.add("video-modal-open");
+
+		// Size the dialog responsively with a 16:9 player
+		resizeVideoModal();
+		// Recompute on resize while open
+		detachResize = () => resizeVideoModal();
+		window.addEventListener("resize", detachResize);
 
 		const focusTarget = modal.querySelector("[data-video-close]");
 		if (focusTarget && typeof focusTarget.focus === "function") {
@@ -467,10 +515,75 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	});
 
+	// Swipe-aware carousel handling to avoid accidental opens on swipe
+	const carousels = document.querySelectorAll("[data-video-carousel]");
+	carousels.forEach(carousel => {
+		let isDragging = false;
+		let startX = 0;
+		let startY = 0;
+		let lastDragTs = 0;
+
+		const THRESHOLD = 10; // px
+
+		const onStart = (x, y) => {
+			isDragging = false;
+			startX = x;
+			startY = y;
+			carousel.dataset.dragging = "false";
+		};
+
+		const onMove = (x, y) => {
+			const dx = Math.abs(x - startX);
+			const dy = Math.abs(y - startY);
+			if (!isDragging && (dx > THRESHOLD) && dx > dy) {
+				isDragging = true;
+				carousel.dataset.dragging = "true";
+				lastDragTs = Date.now();
+			}
+		};
+
+		const onEnd = () => {
+			// allow a tiny window where clicks are ignored after drag ends
+			setTimeout(() => {
+				isDragging = false;
+				carousel.dataset.dragging = "false";
+			}, 50);
+		};
+
+		carousel.addEventListener("touchstart", e => {
+			const t = e.touches[0];
+			onStart(t.clientX, t.clientY);
+		}, { passive: true });
+		carousel.addEventListener("touchmove", e => {
+			const t = e.touches[0];
+			onMove(t.clientX, t.clientY);
+		}, { passive: true });
+		carousel.addEventListener("touchend", onEnd, { passive: true });
+		carousel.addEventListener("mousedown", e => onStart(e.clientX, e.clientY));
+		carousel.addEventListener("mousemove", e => onMove(e.clientX, e.clientY));
+		carousel.addEventListener("mouseleave", onEnd);
+		carousel.addEventListener("mouseup", onEnd);
+
+		// Guard clicks on items while dragging
+		carousel.addEventListener("click", e => {
+			const now = Date.now();
+			const dragging = carousel.dataset.dragging === "true" || (now - lastDragTs) < 80;
+			if (dragging) {
+				e.preventDefault();
+				e.stopPropagation();
+			}
+		}, true);
+	});
+
 	const launchers = document.querySelectorAll("[data-video-launch]");
 	const handleLaunch = (event) => {
 		if (event) {
-			// Prevent default navigation (especially important on mobile Safari)
+			// If currently dragging inside a carousel, ignore
+			const parentCarousel = event.currentTarget.closest("[data-video-carousel]");
+			if (parentCarousel && parentCarousel.dataset.dragging === "true") {
+				return;
+			}
+			// Prevent default navigation (open modal instead)
 			event.preventDefault();
 			event.stopPropagation();
 		}
@@ -487,10 +600,8 @@ document.addEventListener("DOMContentLoaded", () => {
 	};
 
 	launchers.forEach(launcher => {
-		// Click for desktop and general cases
+		// Click to open (tap on mobile triggers click)
 		launcher.addEventListener("click", handleLaunch);
-		// Touchstart to block default early on mobile browsers
-		launcher.addEventListener("touchstart", handleLaunch, { passive: false });
 		// Keyboard accessibility
 		launcher.addEventListener("keydown", e => {
 			if (e.key === "Enter" || e.key === " ") {
