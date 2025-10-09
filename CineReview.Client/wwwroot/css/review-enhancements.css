@@ -46,7 +46,7 @@
     left: 0;
     width: 60px;
     height: 3px;
-    background: linear-gradient(90deg, #818cf8, transparent);
+    /* background: linear-gradient(90deg, #818cf8, transparent); */
     border-radius: 2px;
 }
 

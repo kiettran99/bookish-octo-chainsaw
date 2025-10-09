@@ -1066,7 +1066,7 @@
                 toggleElement(summaryFreeformText, false);
 
                 const avgRaw = tagRatingsArray.reduce((sum, item) => sum + item.rating, 0) / tagRatingsArray.length;
-                const avgRating = Math.round(avgRaw * 10) / 10;
+                const avgRating = Math.round(avgRaw);
 
                 currentReviewData = {
                     tmdbMovieId: movieId,

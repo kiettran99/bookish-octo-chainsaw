@@ -80,6 +80,7 @@ a:hover {
     background: rgba(56, 189, 248, 0.28);
     color: #0b1220;
 }
+
 ::-moz-selection {
     background: rgba(56, 189, 248, 0.28);
     color: #0b1220;
@@ -343,10 +344,29 @@ body.video-modal-open {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
     scroll-snap-type: x mandatory;
-    padding-bottom: 0.25rem; /* give space to avoid clipping shadows */
+    padding-bottom: 0.25rem;
+    /* give space to avoid clipping shadows */
 }
 
 .video-carousel .video-card {
     flex: 0 0 auto;
     scroll-snap-align: start;
+}
+
+/* Fix trắng lóa khi load backdrop trên mobile */
+.detail-hero__backdrop {
+    position: absolute;
+    inset: 0;
+    background: #030712;
+    /* fallback màu nền tối */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: background-image 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    z-index: 0;
+}
+
+.detail-hero__backdrop.is-ready {
+    opacity: 1;
 }

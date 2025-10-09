@@ -47,7 +47,14 @@ else
 
     <article class="movie-detail">
         <section class="detail-hero position-relative overflow-hidden" data-has-backdrop="@hasBackdrop">
-            <div class="detail-hero__backdrop" @(hasBackdrop ? $"data-backdrop-url=\"{summary?.BackdropUrl}\"" : null)></div>
+            @if (hasBackdrop)
+            {
+                <div class="detail-hero__backdrop" data-backdrop-url="@summary!.BackdropUrl"></div>
+            }
+            else
+            {
+                <div class="detail-hero__backdrop"></div>
+            }
             <div class="detail-hero__overlay"></div>
             <div class="container-xl position-relative">
                 <div class="detail-hero__layout-mobile d-md-none">
