@@ -53,8 +53,17 @@
     inset: 0;
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
     filter: blur(6px) brightness(0.7);
     transform: scale(1.08);
+    will-change: opacity, transform, filter;
+    opacity: 0;
+    transition: opacity 220ms ease, filter 220ms ease;
+    image-rendering: -webkit-optimize-contrast;
+}
+
+.detail-hero__backdrop.is-ready {
+    opacity: 1;
 }
 
 .detail-hero__overlay {
@@ -716,6 +725,12 @@
 @media (max-width: 767.98px) {
     .detail-hero {
         padding-top: 4.5rem;
+    }
+
+    /* Slightly reduce heavy filters on mobile to avoid jank */
+    .detail-hero__backdrop {
+        filter: blur(5px) brightness(0.6);
+        transform: scale(1.05);
     }
 
     .detail-hero__layout {

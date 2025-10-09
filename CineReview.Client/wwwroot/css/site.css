@@ -12,7 +12,6 @@
     border-radius: 1rem;
     box-shadow: 0 18px 48px rgba(14, 165, 233, 0.22);
     backdrop-filter: blur(12px);
-    color: #e2e8f0;
     padding: 0.5rem 0;
     overflow: hidden;
     animation: dropdownFadeIn 0.18s ease;
@@ -23,7 +22,6 @@
         opacity: 0;
         transform: translateY(-8px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -255,14 +253,16 @@ a:hover {
 
 /* Optimize mobile navbar collapse animation */
 .navbar-collapse {
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    will-change: opacity, transform;
+    transform-origin: top center;
 }
 
 .navbar-collapse.collapsing {
     height: auto !important;
     opacity: 0;
     transform: translateY(-10px);
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
 .navbar-collapse.show {
@@ -339,6 +339,9 @@ a:hover {
     
     .navbar-collapse {
         margin-top: 0.75rem;
+        /* Avoid heavy background effects when animating on mobile */
+        background: rgba(15, 23, 42, 0.98);
+        backdrop-filter: none;
     }
 }
 
@@ -646,4 +649,18 @@ a:hover {
     .auth-modal .modal-dialog {
         margin: 1.5rem;
     }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .navbar-collapse,
+    .navbar-collapse.collapsing {
+        transition: none !important;
+        transform: none !important;
+    }
+}
+
+/* Improve touch experience */
+* {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }

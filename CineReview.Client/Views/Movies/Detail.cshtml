@@ -47,7 +47,7 @@ else
 
     <article class="movie-detail">
         <section class="detail-hero position-relative overflow-hidden" data-has-backdrop="@hasBackdrop">
-            <div class="detail-hero__backdrop" style="@(hasBackdrop ? $"background-image: url('{summary?.BackdropUrl}');" : null)"></div>
+            <div class="detail-hero__backdrop" @(hasBackdrop ? $"data-backdrop-url=\"{summary?.BackdropUrl}\"" : null)></div>
             <div class="detail-hero__overlay"></div>
             <div class="container-xl position-relative">
                 <div class="detail-hero__layout-mobile d-md-none">
@@ -408,12 +408,6 @@ else
     <div class="video-modal" data-video-modal hidden>
         <div class="video-modal__backdrop" data-video-close></div>
         <div class="video-modal__dialog" role="dialog" aria-modal="true" aria-label="Trình phát video">
-            <div class="video-modal__header">
-                <p class="video-modal__title text-white fw-semibold" data-video-title></p>
-                <button type="button" class="video-modal__close" data-video-close aria-label="Đóng video">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-            </div>
             <div class="video-modal__body">
                 <div class="ratio ratio-16x9 video-modal__player">
                     <iframe data-video-frame src="" title="Trailer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" playsinline webkit-playsinline allowfullscreen></iframe>
@@ -433,4 +427,40 @@ else
     };
 
     private static string FormatSupportScore(int score) => score > 0 ? $"+{score}" : score.ToString();
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            // Smoothly load and reveal detail hero backdrop to avoid flicker on mobile
+            var hero = document.querySelector('.detail-hero');
+            if (!hero) return;
+
+            var hasBackdrop = hero.getAttribute('data-has-backdrop');
+            if (!hasBackdrop || hasBackdrop.toString().toLowerCase() !== 'true') return;
+
+            var backdropEl = hero.querySelector('.detail-hero__backdrop');
+            if (!backdropEl) return;
+
+            var url = backdropEl.getAttribute('data-backdrop-url');
+            if (!url) return;
+
+            // Start hidden; when image fully loads, set background-image and fade-in
+            var img = new Image();
+            img.decoding = 'async';
+            img.loading = 'eager';
+            img.src = url;
+            if (img.complete) {
+                backdropEl.style.backgroundImage = "url('" + url + "')";
+                backdropEl.classList.add('is-ready');
+            } else {
+                img.addEventListener('load', function () {
+                    requestAnimationFrame(function () {
+                        backdropEl.style.backgroundImage = "url('" + url + "')";
+                        backdropEl.classList.add('is-ready');
+                    });
+                });
+            }
+        })();
+    </script>
 }
