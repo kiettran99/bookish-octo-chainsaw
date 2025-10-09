@@ -131,10 +131,9 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             return null;
         }
 
-        var needsNarrativeFallback = string.IsNullOrWhiteSpace(detail.Overview) || string.IsNullOrWhiteSpace(detail.Tagline);
         var needsVideoFallback = !HasSafeVideos(detail.Videos);
 
-        if ((needsNarrativeFallback || needsVideoFallback) && !string.Equals(_options.DefaultLanguage, "en-US", StringComparison.OrdinalIgnoreCase))
+        if (needsVideoFallback && !string.Equals(_options.DefaultLanguage, "en-US", StringComparison.OrdinalIgnoreCase))
         {
             var fallbackDetail = await GetMovieDetailPayloadAsync(id, includeExtended: true, languageOverride: "en-US", cancellationToken).ConfigureAwait(false);
             if (fallbackDetail is not null)
@@ -399,7 +398,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
 
     private async Task<MovieSummary?> GetMovieSummaryWithDetailAsync(int id, IDictionary<int, string> genreLookup, bool? isNowPlayingHint, CancellationToken cancellationToken)
     {
-    var detail = await GetMovieDetailPayloadAsync(id, includeExtended: false, languageOverride: null, cancellationToken).ConfigureAwait(false);
+        var detail = await GetMovieDetailPayloadAsync(id, includeExtended: false, languageOverride: null, cancellationToken).ConfigureAwait(false);
         if (detail is null || detail.Adult)
         {
             return null;
@@ -846,7 +845,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
     {
         return primary with
         {
-            Overview = string.IsNullOrWhiteSpace(primary.Overview) ? fallback.Overview : primary.Overview,
+            // Không merge Overview - chỉ dùng overview tiếng Việt
             Tagline = string.IsNullOrWhiteSpace(primary.Tagline) ? fallback.Tagline : primary.Tagline,
             PosterPath = string.IsNullOrWhiteSpace(primary.PosterPath) ? fallback.PosterPath : primary.PosterPath,
             BackdropPath = string.IsNullOrWhiteSpace(primary.BackdropPath) ? fallback.BackdropPath : primary.BackdropPath,
@@ -1196,7 +1195,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             return detail.Tagline;
         }
 
-        var translation = ResolveFromTranslations(detail, data => data?.Tagline);
+        var translation = ResolveVietnameseTranslation(detail, data => data?.Tagline);
         return translation ?? string.Empty;
     }
 
@@ -1207,8 +1206,43 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             return detail.Overview;
         }
 
-        var translation = ResolveFromTranslations(detail, data => data?.Overview);
+        // Chỉ lấy overview tiếng Việt, không fallback sang tiếng Anh
+        var translation = ResolveVietnameseTranslation(detail, data => data?.Overview);
         return string.IsNullOrWhiteSpace(translation) ? DefaultOverviewFallback : translation!;
+    }
+
+    private static string? ResolveVietnameseTranslation(TmdbMovieDetail detail, Func<TmdbTranslationData?, string?> selector)
+    {
+        var translations = detail.Translations?.Translations;
+        if (translations is null || translations.Count == 0)
+        {
+            return null;
+        }
+
+        // Ưu tiên vi-VN, sau đó vi
+        foreach (var translation in translations)
+        {
+            if (translation.Data is null)
+                continue;
+
+            var isVietnamese = string.Equals(translation.Iso639, "vi", StringComparison.OrdinalIgnoreCase);
+            if (!isVietnamese)
+                continue;
+
+            var value = selector(translation.Data);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                // Ưu tiên vi-VN nếu có cả region
+                if (string.Equals(translation.Iso3166, "VN", StringComparison.OrdinalIgnoreCase))
+                    return value;
+
+                // Lưu lại giá trị vi (không có region) để dùng nếu không tìm thấy vi-VN
+                if (string.IsNullOrWhiteSpace(translation.Iso3166))
+                    return value;
+            }
+        }
+
+        return null;
     }
 
     private static string ResolveTitle(TmdbMovieDetail detail)
