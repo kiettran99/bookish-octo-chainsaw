@@ -408,13 +408,15 @@ else
     <div class="video-modal" data-video-modal hidden>
         <div class="video-modal__backdrop" data-video-close></div>
         <div class="video-modal__dialog" role="dialog" aria-modal="true" aria-label="Trình phát video">
-            <button type="button" class="video-modal__close" data-video-close aria-label="Đóng video">
-                <i class="bi bi-x-lg"></i>
-            </button>
-            <div class="video-modal__body">
+            <div class="video-modal__header">
                 <p class="video-modal__title text-white fw-semibold" data-video-title></p>
+                <button type="button" class="video-modal__close" data-video-close aria-label="Đóng video">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="video-modal__body">
                 <div class="ratio ratio-16x9 video-modal__player">
-                    <iframe data-video-frame src="" title="Trailer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                    <iframe data-video-frame src="" title="Trailer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" playsinline webkit-playsinline allowfullscreen></iframe>
                 </div>
             </div>
         </div>

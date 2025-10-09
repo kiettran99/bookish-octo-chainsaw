@@ -425,7 +425,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 		lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-		frame.src = embedUrl;
+		// Add parameters to prevent redirect to YouTube app on mobile and enable controls/fullscreen
+		const separator = embedUrl.includes('?') ? '&' : '?';
+		const enhancedUrl = `${embedUrl}${separator}autoplay=1&playsinline=1&rel=0&fs=1&controls=1&modestbranding=1`;
+
+		frame.src = enhancedUrl;
 		frame.title = videoTitle;
 		if (titleNode) {
 			titleNode.textContent = videoTitle;
@@ -464,17 +468,34 @@ document.addEventListener("DOMContentLoaded", () => {
 	});
 
 	const launchers = document.querySelectorAll("[data-video-launch]");
-	launchers.forEach(launcher => {
-		launcher.addEventListener("click", event => {
+	const handleLaunch = (event) => {
+		if (event) {
+			// Prevent default navigation (especially important on mobile Safari)
 			event.preventDefault();
-			const embedUrl = launcher.dataset.videoEmbed;
-			if (!embedUrl) {
-				console.warn("No embed URL found for video");
-				return;
-			}
+			event.stopPropagation();
+		}
 
-			const videoTitle = launcher.dataset.videoTitle || "Trailer";
-			openModal(embedUrl, videoTitle);
+		const trigger = event.currentTarget;
+		const embedUrl = trigger?.dataset?.videoEmbed;
+		if (!embedUrl) {
+			console.warn("No embed URL found for video");
+			return;
+		}
+
+		const videoTitle = trigger?.dataset?.videoTitle || "Trailer";
+		openModal(embedUrl, videoTitle);
+	};
+
+	launchers.forEach(launcher => {
+		// Click for desktop and general cases
+		launcher.addEventListener("click", handleLaunch);
+		// Touchstart to block default early on mobile browsers
+		launcher.addEventListener("touchstart", handleLaunch, { passive: false });
+		// Keyboard accessibility
+		launcher.addEventListener("keydown", e => {
+			if (e.key === "Enter" || e.key === " ") {
+				handleLaunch(e);
+			}
 		});
 	});
 });
