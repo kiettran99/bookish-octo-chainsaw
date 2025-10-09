@@ -354,14 +354,46 @@
     gap: 0.25rem;
 }
 
+.video-carousel {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(260px, clamp(300px, 42vw, 360px));
+    gap: 1.5rem;
+    overflow-x: auto;
+    padding: 0.5rem 0 0.75rem;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+}
+
+.video-carousel::-webkit-scrollbar {
+    height: 8px;
+}
+
+.video-carousel::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 999px;
+}
+
+.video-carousel::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 999px;
+}
+
+.video-carousel::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
+}
+
 .video-card {
-    display: block;
+    display: flex;
+    flex-direction: column;
     border-radius: 1.5rem;
     overflow: hidden;
     background: rgba(8, 11, 19, 0.72);
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
     transition: transform 180ms ease, box-shadow 180ms ease;
     text-decoration: none;
+    height: 100%;
+    scroll-snap-align: start;
 }
 
 .video-card:hover {
@@ -378,6 +410,26 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.video-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.video-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: auto;
+}
+
+.video-card__badge {
+    margin-left: auto;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
 }
 
 .video-card__play {
@@ -643,6 +695,10 @@
         border-top: none;
         border-left: 1px solid rgba(15, 23, 42, 0.25);
     }
+
+    .video-carousel {
+        grid-auto-columns: minmax(240px, clamp(280px, 58vw, 340px));
+    }
 }
 
 @media (min-width: 768px) {
@@ -677,6 +733,10 @@
 
     .detail-hero__mobile-body {
         gap: 1.2rem;
+    }
+
+    .video-carousel {
+        grid-auto-columns: minmax(220px, clamp(260px, 78vw, 320px));
     }
 
     .detail-hero__mobile-meta {
@@ -827,5 +887,9 @@
     .community-review__action--unfair {
         border-left: none;
         border-top: 1px solid rgba(15, 23, 42, 0.25);
+    }
+
+    .video-carousel {
+        grid-auto-columns: minmax(200px, clamp(220px, 85vw, 280px));
     }
 }

@@ -53,7 +53,10 @@ public sealed record TrailerVideo(
     string Title,
     string ThumbnailUrl,
     string VideoUrl,
-    string Provider
+    string EmbedUrl,
+    string Provider,
+    bool IsOfficial,
+    string Type
 );
 
 public sealed record MovieProfile(

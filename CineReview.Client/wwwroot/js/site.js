@@ -376,3 +376,105 @@
 		});
 	});
 })();
+
+document.addEventListener("DOMContentLoaded", () => {
+	const modal = document.querySelector("[data-video-modal]");
+	if (!modal) {
+		console.warn("Video modal not found in DOM");
+		return;
+	}
+
+	// Move modal to body if it's not already there
+	if (modal.parentElement !== document.body) {
+		document.body.appendChild(modal);
+	}
+
+	modal.setAttribute("aria-hidden", modal.hasAttribute("hidden") ? "true" : "false");
+
+	const frame = modal.querySelector("[data-video-frame]");
+	const titleNode = modal.querySelector("[data-video-title]");
+	const closeTriggers = modal.querySelectorAll("[data-video-close]");
+	const backdrop = modal.querySelector(".video-modal__backdrop");
+	const body = document.body;
+	let lastActiveElement = null;
+
+	const closeModal = () => {
+		if (!modal.hasAttribute("hidden")) {
+			modal.setAttribute("hidden", "true");
+			modal.setAttribute("aria-hidden", "true");
+			body.classList.remove("video-modal-open");
+			if (frame) {
+				frame.src = "";
+				frame.removeAttribute("title");
+			}
+			if (titleNode) {
+				titleNode.textContent = "";
+			}
+			if (lastActiveElement && typeof lastActiveElement.focus === "function") {
+				lastActiveElement.focus();
+			}
+			lastActiveElement = null;
+		}
+	};
+
+	const openModal = (embedUrl, videoTitle) => {
+		if (!frame) {
+			console.error("Video frame not found");
+			return;
+		}
+
+		lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+		frame.src = embedUrl;
+		frame.title = videoTitle;
+		if (titleNode) {
+			titleNode.textContent = videoTitle;
+		}
+		modal.removeAttribute("hidden");
+		modal.setAttribute("aria-hidden", "false");
+		body.classList.add("video-modal-open");
+
+		const focusTarget = modal.querySelector("[data-video-close]");
+		if (focusTarget && typeof focusTarget.focus === "function") {
+			focusTarget.focus();
+		}
+	};
+
+	closeTriggers.forEach(trigger => {
+		trigger.addEventListener("click", event => {
+			event.preventDefault();
+			closeModal();
+		});
+	});
+
+	if (backdrop) {
+		backdrop.addEventListener("click", closeModal);
+	}
+
+	modal.addEventListener("click", event => {
+		if (event.target === modal) {
+			closeModal();
+		}
+	});
+
+	document.addEventListener("keydown", event => {
+		if (event.key === "Escape" && !modal.hasAttribute("hidden")) {
+			closeModal();
+		}
+	});
+
+	const launchers = document.querySelectorAll("[data-video-launch]");
+	launchers.forEach(launcher => {
+		launcher.addEventListener("click", event => {
+			event.preventDefault();
+			const embedUrl = launcher.dataset.videoEmbed;
+			if (!embedUrl) {
+				console.warn("No embed URL found for video");
+				return;
+			}
+
+			const videoTitle = launcher.dataset.videoTitle || "Trailer";
+			openModal(embedUrl, videoTitle);
+		});
+	});
+});

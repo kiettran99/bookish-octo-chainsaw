@@ -262,21 +262,37 @@ else
                         <h2 class="h3 text-white mb-0">Video chính thức</h2>
                         <span class="text-secondary">Từ kênh @profile.Videos.First().Provider</span>
                     </div>
-                    <div class="row g-4 cards-row-mobile">
+                    <div class="video-carousel" data-video-carousel role="list">
                         @foreach (var video in profile.Videos)
                         {
-                            <div class="col-12 col-lg-6">
-                                <a class="video-card" href="@video.VideoUrl" target="_blank" rel="noopener">
-                                    <div class="video-card__thumb">
-                                        <img src="@video.ThumbnailUrl" alt="@video.Title" loading="lazy" />
-                                        <span class="video-card__play"><i class="bi bi-play-fill"></i></span>
-                                    </div>
-                                    <div class="p-4">
-                                        <h3 class="h6 text-white mb-1">@video.Title</h3>
+                            <a class="video-card"
+                               href="@video.VideoUrl"
+                               target="_blank"
+                               rel="noopener"
+                               role="listitem"
+                               aria-label="@video.Title trên @video.Provider"
+                               data-video-launch
+                               data-video-id="@video.Id"
+                               data-video-title="@video.Title"
+                               data-video-embed="@video.EmbedUrl"
+                               data-video-provider="@video.Provider"
+                               data-video-type="@video.Type"
+                               data-video-official="@video.IsOfficial">
+                                <div class="video-card__thumb">
+                                    <img src="@video.ThumbnailUrl" alt="@video.Title" loading="lazy" />
+                                    <span class="video-card__play"><i class="bi bi-play-fill"></i></span>
+                                </div>
+                                <div class="video-card__body p-4">
+                                    <h3 class="h6 text-white mb-2">@video.Title</h3>
+                                    <div class="video-card__meta">
                                         <span class="text-secondary small">Phát trên @video.Provider</span>
+                                        @if (video.IsOfficial)
+                                        {
+                                            <span class="badge chip chip--success video-card__badge">Official</span>
+                                        }
                                     </div>
-                                </a>
-                            </div>
+                                </div>
+                            </a>
                         }
                     </div>
                 </div>
@@ -389,6 +405,20 @@ else
             </div>
         </section>
     </article>
+    <div class="video-modal" data-video-modal hidden>
+        <div class="video-modal__backdrop" data-video-close></div>
+        <div class="video-modal__dialog" role="dialog" aria-modal="true" aria-label="Trình phát video">
+            <button type="button" class="video-modal__close" data-video-close aria-label="Đóng video">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <div class="video-modal__body">
+                <p class="video-modal__title text-white fw-semibold" data-video-title></p>
+                <div class="ratio ratio-16x9 video-modal__player">
+                    <iframe data-video-frame src="" title="Trailer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
     @await Html.PartialAsync("_MovieReviewSheet")
 }
 

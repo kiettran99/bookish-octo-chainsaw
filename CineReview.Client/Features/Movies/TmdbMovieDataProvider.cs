@@ -25,6 +25,26 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
 
     private const string GenreCacheKey = "tmdb:genres:v1";
     private const string CountryCacheKey = "tmdb:countries:v1";
+    private const string DefaultOverviewFallback = "Thông tin nội dung đang được cập nhật.";
+
+    private static readonly string[] PreferredVideoTypes = { "Trailer", "Teaser", "Clip", "Featurette" };
+    private static readonly string[] RestrictedVideoKeywords =
+    {
+        "red band",
+        "restricted",
+        "age-restricted",
+        "explicit",
+        "uncensored",
+        "nsfw",
+        "18+",
+        "18 plus",
+        "unrated",
+        "adult",
+        "age restricted",
+        "uncut"
+    };
+
+    private IReadOnlyList<string>? _preferredLanguageCodes;
 
     public TmdbMovieDataProvider(
         HttpClient httpClient,
@@ -82,7 +102,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         MovieSummary featured;
         if (featuredCandidate is not null)
         {
-            var detailedSummary = await GetMovieSummaryWithDetailAsync(featuredCandidate.Id, genreLookup, cancellationToken).ConfigureAwait(false);
+            var detailedSummary = await GetMovieSummaryWithDetailAsync(featuredCandidate.Id, genreLookup, null, cancellationToken).ConfigureAwait(false);
             featured = detailedSummary ?? featuredCandidate;
         }
         else
@@ -105,10 +125,22 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
     public async ValueTask<MovieProfile?> GetMovieDetailAsync(int id, CancellationToken cancellationToken = default)
     {
         var genreLookup = await GetGenreLookupAsync(cancellationToken).ConfigureAwait(false);
-        var detail = await GetMovieDetailPayloadAsync(id, includeExtended: true, cancellationToken).ConfigureAwait(false);
+        var detail = await GetMovieDetailPayloadAsync(id, includeExtended: true, languageOverride: null, cancellationToken).ConfigureAwait(false);
         if (detail is null)
         {
             return null;
+        }
+
+        var needsNarrativeFallback = string.IsNullOrWhiteSpace(detail.Overview) || string.IsNullOrWhiteSpace(detail.Tagline);
+        var needsVideoFallback = !HasSafeVideos(detail.Videos);
+
+        if ((needsNarrativeFallback || needsVideoFallback) && !string.Equals(_options.DefaultLanguage, "en-US", StringComparison.OrdinalIgnoreCase))
+        {
+            var fallbackDetail = await GetMovieDetailPayloadAsync(id, includeExtended: true, languageOverride: "en-US", cancellationToken).ConfigureAwait(false);
+            if (fallbackDetail is not null)
+            {
+                detail = MergeDetailFallback(detail, fallbackDetail);
+            }
         }
 
         var summary = MapToSummary(detail, genreLookup, inferIsNowPlaying: null);
@@ -117,7 +149,14 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         var watchOptions = BuildWatchOptions(detail, summary);
         var ticketPolicy = BuildTicketPolicy(summary);
         var cast = BuildTopCast(detail);
+
         var videos = BuildVideos(detail);
+        if (videos.Count == 0)
+        {
+            var supplementalVideos = await FetchSupplementalVideosAsync(id, detail.Videos?.Results, cancellationToken).ConfigureAwait(false);
+            videos = BuildVideos(detail, supplementalVideos);
+        }
+
         var reviews = BuildDetailReviews(summary);
         var recommendations = BuildRecommendations(detail, genreLookup);
 
@@ -213,11 +252,17 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         }
 
         var summaries = new List<MovieSummary>();
+        var enrichmentIds = new List<int>();
         if (payload.Results is not null)
         {
             foreach (var item in payload.Results)
             {
                 if (item is null)
+                {
+                    continue;
+                }
+
+                if (item.Adult)
                 {
                     continue;
                 }
@@ -259,6 +304,26 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
 
                 var summary = MapToSummary(item, genreLookup, isNowPlaying: null);
                 summaries.Add(summary);
+
+                if (NeedsDetailEnrichment(item))
+                {
+                    enrichmentIds.Add(item.Id);
+                }
+            }
+        }
+
+        if (enrichmentIds.Count > 0)
+        {
+            var enrichedLookup = await FetchEnrichedSummariesAsync(enrichmentIds, genreLookup, isNowPlaying: null, cancellationToken).ConfigureAwait(false);
+            if (enrichedLookup.Count > 0)
+            {
+                for (var i = 0; i < summaries.Count; i++)
+                {
+                    if (enrichedLookup.TryGetValue(summaries[i].Id, out var enriched))
+                    {
+                        summaries[i] = enriched;
+                    }
+                }
             }
         }
 
@@ -290,13 +355,17 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         int take,
         CancellationToken cancellationToken)
     {
-        var payload = await GetFromTmdbAsync<TmdbMovieListResponse>(path, null, cancellationToken).ConfigureAwait(false);
+        var payload = await GetFromTmdbAsync<TmdbMovieListResponse>(path, new Dictionary<string, string?>
+        {
+            ["include_adult"] = "false"
+        }, cancellationToken).ConfigureAwait(false);
         if (payload?.Results is null || payload.Results.Count == 0)
         {
             return Array.Empty<MovieSummary>();
         }
 
         var selected = payload.Results
+            .Where(item => !item.Adult)
             .Where(item => !string.IsNullOrWhiteSpace(item.Title))
             .OrderByDescending(item => item.Popularity)
             .Take(take)
@@ -305,7 +374,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         var summaries = new List<MovieSummary>(selected.Length);
         foreach (var item in selected)
         {
-            var summary = await GetMovieSummaryWithDetailAsync(item.Id, genreLookup, cancellationToken).ConfigureAwait(false);
+            var summary = await GetMovieSummaryWithDetailAsync(item.Id, genreLookup, isNowPlaying, cancellationToken).ConfigureAwait(false);
             if (summary is null)
             {
                 summary = MapToSummary(item, genreLookup, isNowPlaying);
@@ -328,10 +397,15 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         return summaries;
     }
 
-    private async Task<MovieSummary?> GetMovieSummaryWithDetailAsync(int id, IDictionary<int, string> genreLookup, CancellationToken cancellationToken)
+    private async Task<MovieSummary?> GetMovieSummaryWithDetailAsync(int id, IDictionary<int, string> genreLookup, bool? isNowPlayingHint, CancellationToken cancellationToken)
     {
-        var detail = await GetMovieDetailPayloadAsync(id, includeExtended: false, cancellationToken).ConfigureAwait(false);
-        return detail is null ? null : MapToSummary(detail, genreLookup, inferIsNowPlaying: null);
+    var detail = await GetMovieDetailPayloadAsync(id, includeExtended: false, languageOverride: null, cancellationToken).ConfigureAwait(false);
+        if (detail is null || detail.Adult)
+        {
+            return null;
+        }
+
+        return MapToSummary(detail, genreLookup, inferIsNowPlaying: isNowPlayingHint);
     }
 
     private async Task<IReadOnlyList<MovieFilterOption>> GetCountryOptionsAsync(CancellationToken cancellationToken)
@@ -377,7 +451,8 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         var safePage = requestedPage < 1 ? 1 : requestedPage;
         var query = new Dictionary<string, string?>
         {
-            ["page"] = safePage.ToString(CultureInfo.InvariantCulture)
+            ["page"] = safePage.ToString(CultureInfo.InvariantCulture),
+            ["include_adult"] = "false"
         };
 
         var genreLookup = await GetGenreLookupAsync(cancellationToken).ConfigureAwait(false);
@@ -390,14 +465,41 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         }
 
         var summaries = new List<MovieSummary>(payload.Results.Count);
+        var enrichmentIds = new List<int>();
         foreach (var item in payload.Results)
         {
+            if (item.Adult)
+            {
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(item.Title) && string.IsNullOrWhiteSpace(item.OriginalTitle))
             {
                 continue;
             }
 
-            summaries.Add(MapToSummary(item, genreLookup, isNowPlaying));
+            var summary = MapToSummary(item, genreLookup, isNowPlaying);
+            summaries.Add(summary);
+
+            if (NeedsDetailEnrichment(item))
+            {
+                enrichmentIds.Add(item.Id);
+            }
+        }
+
+        if (enrichmentIds.Count > 0)
+        {
+            var enrichedLookup = await FetchEnrichedSummariesAsync(enrichmentIds, genreLookup, isNowPlaying, cancellationToken).ConfigureAwait(false);
+            if (enrichedLookup.Count > 0)
+            {
+                for (var i = 0; i < summaries.Count; i++)
+                {
+                    if (enrichedLookup.TryGetValue(summaries[i].Id, out var enriched))
+                    {
+                        summaries[i] = enriched;
+                    }
+                }
+            }
         }
 
         var resolvedPage = payload.Page <= 0 ? safePage : payload.Page;
@@ -425,16 +527,20 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         var isNowPlaying = inferIsNowPlaying ?? DetermineNowPlayingStatus(releaseDate, detail.Status);
         var requiresTicket = DetermineTicketVerification(releaseDate, isNowPlaying);
 
+        var resolvedTitle = ResolveTitle(detail);
+        var resolvedTagline = ResolveTagline(detail);
+        var resolvedOverview = ResolveOverview(detail);
+
         return new MovieSummary(
             Id: detail.Id,
-            Title: detail.Title ?? detail.OriginalTitle ?? "Tên phim chưa cập nhật",
-            Tagline: detail.Tagline ?? string.Empty,
+            Title: resolvedTitle,
+            Tagline: resolvedTagline,
             PosterUrl: ResolveImageUrl(detail.PosterPath, _options.PosterSize),
             BackdropUrl: ResolveImageUrl(detail.BackdropPath, _options.BackdropSize),
             ReleaseDate: releaseDate,
             CommunityScore: detail.VoteAverage,
             Genres: genres,
-            Overview: detail.Overview ?? string.Empty,
+            Overview: resolvedOverview,
             IsNowPlaying: isNowPlaying,
             RequiresTicketVerification: requiresTicket
         );
@@ -451,16 +557,18 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         var inferedNowPlaying = isNowPlaying ?? DetermineNowPlayingStatus(releaseDate, null);
         var requiresTicket = DetermineTicketVerification(releaseDate, inferedNowPlaying);
 
+        var overview = string.IsNullOrWhiteSpace(item.Overview) ? DefaultOverviewFallback : item.Overview!;
+
         return new MovieSummary(
             Id: item.Id,
             Title: item.Title ?? item.OriginalTitle ?? "Tên phim chưa cập nhật",
-            Tagline: item.Overview ?? string.Empty,
+            Tagline: string.Empty,
             PosterUrl: ResolveImageUrl(item.PosterPath, _options.PosterSize),
             BackdropUrl: ResolveImageUrl(item.BackdropPath, _options.BackdropSize),
             ReleaseDate: releaseDate,
             CommunityScore: item.VoteAverage,
             Genres: genres,
-            Overview: item.Overview ?? string.Empty,
+            Overview: overview,
             IsNowPlaying: inferedNowPlaying,
             RequiresTicketVerification: requiresTicket
         );
@@ -481,9 +589,15 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         return genres;
     }
 
-    private async Task<TmdbMovieDetail?> GetMovieDetailPayloadAsync(int id, bool includeExtended, CancellationToken cancellationToken)
+    private async Task<TmdbMovieDetail?> GetMovieDetailPayloadAsync(int id, bool includeExtended, string? languageOverride, CancellationToken cancellationToken)
     {
-        var cacheKey = includeExtended ? $"tmdb:movie:{id}:full" : $"tmdb:movie:{id}:core";
+        var languageKey = string.IsNullOrWhiteSpace(languageOverride)
+            ? string.IsNullOrWhiteSpace(_options.DefaultLanguage) ? "default" : _options.DefaultLanguage!
+            : languageOverride;
+
+        var cacheKey = includeExtended
+            ? $"tmdb:movie:{id}:full:{languageKey}"
+            : $"tmdb:movie:{id}:core:{languageKey}";
         if (_cache.TryGetValue(cacheKey, out object? cachedObj) && cachedObj is TmdbMovieDetail cachedDetail)
         {
             return cachedDetail;
@@ -492,9 +606,21 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         var query = includeExtended
             ? new Dictionary<string, string?>
             {
-                ["append_to_response"] = "credits,videos,recommendations,release_dates"
+                ["append_to_response"] = "credits,videos,recommendations,release_dates,translations",
+                ["include_image_language"] = BuildIncludeImageLanguageParameter(),
+                ["include_video_language"] = BuildIncludeVideoLanguageParameter()
             }
-            : null;
+            : new Dictionary<string, string?>
+            {
+                ["append_to_response"] = "translations",
+                ["include_image_language"] = BuildIncludeImageLanguageParameter(),
+                ["include_video_language"] = BuildIncludeVideoLanguageParameter()
+            };
+
+        if (languageOverride is not null)
+        {
+            query["language"] = languageOverride;
+        }
 
         var detail = await GetFromTmdbAsync<TmdbMovieDetail>($"movie/{id}", query, cancellationToken).ConfigureAwait(false);
         if (detail is null)
@@ -537,8 +663,24 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         var builder = new UriBuilder(new Uri(_httpClient.BaseAddress!, path));
 
         var queryParameters = new List<string>();
+        var hasLanguageParam = false;
+        var hasRegionParam = false;
+
         if (query is not null)
         {
+            foreach (var kv in query)
+            {
+                if (string.Equals(kv.Key, "language", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasLanguageParam = true;
+                }
+
+                if (string.Equals(kv.Key, "region", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasRegionParam = true;
+                }
+            }
+
             foreach (var kv in query)
             {
                 if (!string.IsNullOrWhiteSpace(kv.Value))
@@ -553,12 +695,12 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             queryParameters.Add($"api_key={Uri.EscapeDataString(_options.ApiKey!)}");
         }
 
-        if (!string.IsNullOrWhiteSpace(_options.DefaultLanguage))
+        if (!hasLanguageParam && !string.IsNullOrWhiteSpace(_options.DefaultLanguage))
         {
             queryParameters.Add($"language={Uri.EscapeDataString(_options.DefaultLanguage)}");
         }
 
-        if (!string.IsNullOrWhiteSpace(_options.DefaultRegion))
+        if (!hasRegionParam && !string.IsNullOrWhiteSpace(_options.DefaultRegion))
         {
             queryParameters.Add($"region={Uri.EscapeDataString(_options.DefaultRegion)}");
         }
@@ -697,26 +839,197 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             .ToArray();
     }
 
-    private static IReadOnlyList<TrailerVideo> BuildVideos(TmdbMovieDetail detail)
+    private static bool HasSafeVideos(TmdbVideoResponse? videos)
+        => videos?.Results?.Any(IsSafeVideo) == true;
+
+    private static TmdbMovieDetail MergeDetailFallback(TmdbMovieDetail primary, TmdbMovieDetail fallback)
     {
-        var videos = detail.Videos?.Results;
-        if (videos is null || videos.Count == 0)
+        return primary with
+        {
+            Overview = string.IsNullOrWhiteSpace(primary.Overview) ? fallback.Overview : primary.Overview,
+            Tagline = string.IsNullOrWhiteSpace(primary.Tagline) ? fallback.Tagline : primary.Tagline,
+            PosterPath = string.IsNullOrWhiteSpace(primary.PosterPath) ? fallback.PosterPath : primary.PosterPath,
+            BackdropPath = string.IsNullOrWhiteSpace(primary.BackdropPath) ? fallback.BackdropPath : primary.BackdropPath,
+            Runtime = primary.Runtime ?? fallback.Runtime,
+            Status = string.IsNullOrWhiteSpace(primary.Status) ? fallback.Status : primary.Status,
+            Genres = primary.Genres is { Count: > 0 } ? primary.Genres : fallback.Genres ?? primary.Genres,
+            GenreIds = primary.GenreIds is { Count: > 0 } ? primary.GenreIds : fallback.GenreIds ?? primary.GenreIds,
+            ReleaseDates = primary.ReleaseDates is { Results.Count: > 0 } ? primary.ReleaseDates : fallback.ReleaseDates ?? primary.ReleaseDates,
+            Credits = primary.Credits is { Cast.Count: > 0 } ? primary.Credits : fallback.Credits ?? primary.Credits,
+            Recommendations = primary.Recommendations is { Results.Count: > 0 } ? primary.Recommendations : fallback.Recommendations ?? primary.Recommendations,
+            Translations = primary.Translations is { Translations.Count: > 0 } ? primary.Translations : fallback.Translations ?? primary.Translations,
+            Videos = CombineVideoResponses(primary.Videos, fallback.Videos)
+        };
+    }
+
+    private static TmdbVideoResponse? CombineVideoResponses(TmdbVideoResponse? primary, TmdbVideoResponse? secondary)
+    {
+        var primaryCount = primary?.Results?.Count ?? 0;
+        var secondaryCount = secondary?.Results?.Count ?? 0;
+        if (primaryCount == 0 && secondaryCount == 0)
+        {
+            return primary ?? secondary;
+        }
+
+        var combined = new List<TmdbVideoItem>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        void Append(TmdbVideoResponse? source)
+        {
+            if (source?.Results is null)
+            {
+                return;
+            }
+
+            foreach (var video in source.Results)
+            {
+                if (video?.Key is null)
+                {
+                    continue;
+                }
+
+                if (seen.Add(video.Key))
+                {
+                    combined.Add(video);
+                }
+            }
+        }
+
+        Append(primary);
+        Append(secondary);
+
+        return new TmdbVideoResponse { Results = combined };
+    }
+
+    private async Task<IReadOnlyList<TmdbVideoItem>> FetchSupplementalVideosAsync(int id, IEnumerable<TmdbVideoItem>? existingVideos, CancellationToken cancellationToken)
+    {
+        var aggregated = new List<TmdbVideoItem>();
+        var seenKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (existingVideos is not null)
+        {
+            foreach (var video in existingVideos)
+            {
+                if (video?.Key is not null)
+                {
+                    seenKeys.Add(video.Key);
+                }
+            }
+        }
+
+        var languages = new List<string?>();
+        var languageSet = new HashSet<string?>(StringComparer.OrdinalIgnoreCase);
+
+        void EnqueueLanguage(string? value)
+        {
+            if (languageSet.Add(value))
+            {
+                languages.Add(value);
+            }
+        }
+
+        EnqueueLanguage(null);
+        EnqueueLanguage("en-US");
+        EnqueueLanguage("en");
+
+        foreach (var code in GetPreferredLanguageCodes())
+        {
+            EnqueueLanguage(code);
+            if (!string.IsNullOrWhiteSpace(code) && code.Contains('-'))
+            {
+                var baseCode = code[..code.IndexOf('-')];
+                EnqueueLanguage(baseCode);
+            }
+        }
+
+        foreach (var language in languages)
+        {
+            if (!string.IsNullOrWhiteSpace(_options.DefaultLanguage) && string.Equals(language, _options.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var query = new Dictionary<string, string?>
+            {
+                ["include_video_language"] = BuildIncludeVideoLanguageParameter()
+            };
+
+            query["language"] = language;
+
+            var payload = await GetFromTmdbAsync<TmdbVideoResponse>($"movie/{id}/videos", query, cancellationToken).ConfigureAwait(false);
+            if (payload?.Results is null || payload.Results.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var video in payload.Results)
+            {
+                if (video?.Key is null)
+                {
+                    continue;
+                }
+
+                if (!seenKeys.Add(video.Key))
+                {
+                    continue;
+                }
+
+                aggregated.Add(video);
+            }
+
+            if (aggregated.Count >= 8)
+            {
+                break;
+            }
+        }
+
+        return aggregated;
+    }
+
+    private static IReadOnlyList<TrailerVideo> BuildVideos(TmdbMovieDetail detail, IEnumerable<TmdbVideoItem>? supplementalVideos = null)
+    {
+        if (detail.Adult)
         {
             return Array.Empty<TrailerVideo>();
         }
 
-        return videos
-            .Where(video => string.Equals(video.Site, "YouTube", StringComparison.OrdinalIgnoreCase))
-            .Where(video => !string.IsNullOrWhiteSpace(video.Key))
-            .OrderByDescending(video => video.Type == "Trailer")
-            .ThenByDescending(video => video.PublishedAt)
+        var candidates = new List<TmdbVideoItem>();
+
+        void Append(IEnumerable<TmdbVideoItem>? source)
+        {
+            if (source is null)
+            {
+                return;
+            }
+
+            candidates.AddRange(source.Where(item => item is not null));
+        }
+
+        Append(detail.Videos?.Results);
+        Append(supplementalVideos);
+
+        if (candidates.Count == 0)
+        {
+            return Array.Empty<TrailerVideo>();
+        }
+
+        return candidates
+            .Where(IsSafeVideo)
+            .GroupBy(video => video.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .OrderByDescending(video => video.Official)
+            .ThenBy(GetVideoTypePriority)
+            .ThenByDescending(video => video.PublishedAt ?? DateTime.MinValue)
             .Take(6)
             .Select(video => new TrailerVideo(
                 Id: video.Id ?? video.Key!,
                 Title: video.Name ?? "Video chính thức",
-                ThumbnailUrl: $"https://img.youtube.com/vi/{video.Key}/hqdefault.jpg",
+                ThumbnailUrl: BuildYouTubeThumbnail(video.Key!),
                 VideoUrl: $"https://www.youtube.com/watch?v={video.Key}",
-                Provider: "YouTube"))
+                EmbedUrl: $"https://www.youtube.com/embed/{video.Key}?autoplay=1",
+                Provider: "YouTube",
+                IsOfficial: video.Official,
+                Type: video.Type ?? string.Empty))
             .ToArray();
     }
 
@@ -815,12 +1128,316 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         }
 
         return recommendations
+            .Where(item => !item.Adult)
             .Where(item => !string.IsNullOrWhiteSpace(item.Title))
             .OrderByDescending(item => item.Popularity)
             .Take(6)
             .Select(item => MapToSummary(item, genreLookup, isNowPlaying: null))
             .ToArray();
     }
+
+    private async Task<Dictionary<int, MovieSummary>> FetchEnrichedSummariesAsync(IEnumerable<int> ids, IDictionary<int, string> genreLookup, bool? isNowPlaying, CancellationToken cancellationToken)
+    {
+        var seen = new HashSet<int>();
+        var orderedIds = new List<int>();
+
+        foreach (var id in ids)
+        {
+            if (seen.Add(id))
+            {
+                orderedIds.Add(id);
+            }
+        }
+
+        if (orderedIds.Count == 0)
+        {
+            return new Dictionary<int, MovieSummary>();
+        }
+
+        var tasks = orderedIds
+            .Select(id => GetMovieSummaryWithDetailAsync(id, genreLookup, isNowPlaying, cancellationToken))
+            .ToArray();
+
+        var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+        return FetchEnrichedSummariesResultToDictionary(orderedIds, results);
+    }
+
+    private static Dictionary<int, MovieSummary> FetchEnrichedSummariesResultToDictionary(IReadOnlyList<int> ids, MovieSummary?[] results)
+    {
+        var map = new Dictionary<int, MovieSummary>(ids.Count);
+        for (var i = 0; i < ids.Count; i++)
+        {
+            var summary = results[i];
+            if (summary is not null)
+            {
+                map[ids[i]] = summary;
+            }
+        }
+
+        return map;
+    }
+
+    private static bool NeedsDetailEnrichment(TmdbMovieListItem item)
+    {
+        if (item is null)
+        {
+            return false;
+        }
+
+        return string.IsNullOrWhiteSpace(item.Overview)
+            || string.IsNullOrWhiteSpace(item.PosterPath)
+            || string.IsNullOrWhiteSpace(item.BackdropPath);
+    }
+
+    private static string ResolveTagline(TmdbMovieDetail detail)
+    {
+        if (!string.IsNullOrWhiteSpace(detail.Tagline))
+        {
+            return detail.Tagline;
+        }
+
+        var translation = ResolveFromTranslations(detail, data => data?.Tagline);
+        return translation ?? string.Empty;
+    }
+
+    private static string ResolveOverview(TmdbMovieDetail detail)
+    {
+        if (!string.IsNullOrWhiteSpace(detail.Overview))
+        {
+            return detail.Overview;
+        }
+
+        var translation = ResolveFromTranslations(detail, data => data?.Overview);
+        return string.IsNullOrWhiteSpace(translation) ? DefaultOverviewFallback : translation!;
+    }
+
+    private static string ResolveTitle(TmdbMovieDetail detail)
+    {
+        if (!string.IsNullOrWhiteSpace(detail.Title))
+        {
+            return detail.Title;
+        }
+
+        if (!string.IsNullOrWhiteSpace(detail.OriginalTitle))
+        {
+            return detail.OriginalTitle;
+        }
+
+        var translation = ResolveFromTranslations(detail, data => data?.Title);
+        return string.IsNullOrWhiteSpace(translation) ? "Tên phim chưa cập nhật" : translation!;
+    }
+
+    private static string? ResolveFromTranslations(TmdbMovieDetail detail, Func<TmdbTranslationData?, string?> selector)
+    {
+        var translations = detail.Translations?.Translations;
+        if (translations is null || translations.Count == 0)
+        {
+            return null;
+        }
+
+        return translations
+            .Where(t => t.Data is not null)
+            .OrderBy(GetTranslationPriority)
+            .Select(t => selector(t.Data))
+            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+    }
+
+    private static int GetTranslationPriority(TmdbTranslation translation)
+    {
+        var languages = GetPreferredLanguageCodesStatic();
+        var locale = CombineLocale(translation.Iso639, translation.Iso3166);
+
+        for (var i = 0; i < languages.Count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(locale) && string.Equals(locale, languages[i], StringComparison.OrdinalIgnoreCase))
+            {
+                return i * 2;
+            }
+
+            if (!string.IsNullOrWhiteSpace(translation.Iso639) && string.Equals(translation.Iso639, languages[i], StringComparison.OrdinalIgnoreCase))
+            {
+                return i * 2 + 1;
+            }
+        }
+
+        return languages.Count * 2 + 1;
+    }
+
+    private static string CombineLocale(string? language, string? region)
+    {
+        if (string.IsNullOrWhiteSpace(language))
+        {
+            return string.Empty;
+        }
+
+        return string.IsNullOrWhiteSpace(region) ? language : $"{language}-{region}";
+    }
+
+    private static IReadOnlyList<string> GetPreferredLanguageCodesStatic()
+    {
+        // Vietnamese prioritized because the UI is Vietnamese-first.
+        return new[] { "vi-VN", "vi", "en-US", "en" };
+    }
+
+    private IReadOnlyList<string> GetPreferredLanguageCodes()
+    {
+        if (_preferredLanguageCodes is not null)
+        {
+            return _preferredLanguageCodes;
+        }
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var ordered = new List<string>();
+
+        void Add(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            if (seen.Add(value))
+            {
+                ordered.Add(value);
+            }
+        }
+
+        Add(_options.DefaultLanguage);
+
+        if (!string.IsNullOrWhiteSpace(_options.DefaultLanguage) && _options.DefaultLanguage.Contains('-'))
+        {
+            Add(_options.DefaultLanguage[.._options.DefaultLanguage.IndexOf('-')]);
+        }
+
+        foreach (var locale in GetPreferredLanguageCodesStatic())
+        {
+            Add(locale);
+        }
+
+        _preferredLanguageCodes = ordered;
+        return ordered;
+    }
+
+    private string BuildIncludeVideoLanguageParameter()
+    {
+        var preferred = GetPreferredLanguageCodes();
+        var ordered = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var code in preferred)
+        {
+            if (seen.Add(code))
+            {
+                ordered.Add(code);
+            }
+        }
+
+        if (seen.Add("null"))
+        {
+            ordered.Add("null");
+        }
+
+        return string.Join(',', ordered);
+    }
+
+    private string BuildIncludeImageLanguageParameter()
+    {
+        var preferred = GetPreferredLanguageCodes();
+        var ordered = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var code in preferred)
+        {
+            if (seen.Add(code))
+            {
+                ordered.Add(code);
+            }
+        }
+
+        if (seen.Add("null"))
+        {
+            ordered.Add("null");
+        }
+
+        return string.Join(',', ordered);
+    }
+
+    private static bool IsSafeVideo(TmdbVideoItem? video)
+    {
+        if (video is null || string.IsNullOrWhiteSpace(video.Key))
+        {
+            return false;
+        }
+
+        if (!string.Equals(video.Site, "YouTube", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!IsPreferredLanguage(video.Iso639))
+        {
+            return false;
+        }
+
+        var title = video.Name ?? string.Empty;
+        foreach (var keyword in RestrictedVideoKeywords)
+        {
+            if (title.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return false;
+            }
+        }
+
+        if (video.Official)
+        {
+            return true;
+        }
+
+        return IsPreferredVideoType(video.Type);
+    }
+
+    private static bool IsPreferredLanguage(string? iso639)
+    {
+        if (string.IsNullOrWhiteSpace(iso639))
+        {
+            return true;
+        }
+
+        return string.Equals(iso639, "vi", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(iso639, "en", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(iso639, "xx", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsPreferredVideoType(string? type)
+    {
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            return false;
+        }
+
+        return PreferredVideoTypes.Any(allowed => string.Equals(allowed, type, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static int GetVideoTypePriority(TmdbVideoItem video)
+    {
+        if (string.IsNullOrWhiteSpace(video.Type))
+        {
+            return PreferredVideoTypes.Length + 1;
+        }
+
+        for (var i = 0; i < PreferredVideoTypes.Length; i++)
+        {
+            if (string.Equals(video.Type, PreferredVideoTypes[i], StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+
+        return PreferredVideoTypes.Length;
+    }
+
+    private static string BuildYouTubeThumbnail(string key)
+        => $"https://img.youtube.com/vi/{key}/hqdefault.jpg";
 
     private static ReviewSnapshot[] BuildSampleReviews(MovieSummary featured)
     {
@@ -994,6 +1611,9 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         [JsonPropertyName("id")]
         public int Id { get; init; }
 
+        [JsonPropertyName("adult")]
+        public bool Adult { get; init; }
+
         [JsonPropertyName("title")]
         public string? Title { get; init; }
 
@@ -1026,6 +1646,9 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
     {
         [JsonPropertyName("id")]
         public int Id { get; init; }
+
+        [JsonPropertyName("adult")]
+        public bool Adult { get; init; }
 
         [JsonPropertyName("title")]
         public string? Title { get; init; }
@@ -1080,6 +1703,9 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
 
         [JsonPropertyName("release_dates")]
         public TmdbReleaseDatesResponse? ReleaseDates { get; init; }
+
+        [JsonPropertyName("translations")]
+        public TmdbTranslationsResponse? Translations { get; init; }
     }
 
     private sealed record TmdbCreditResponse
@@ -1129,6 +1755,15 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         [JsonPropertyName("type")]
         public string? Type { get; init; }
 
+        [JsonPropertyName("official")]
+        public bool Official { get; init; }
+
+        [JsonPropertyName("iso_639_1")]
+        public string? Iso639 { get; init; }
+
+        [JsonPropertyName("iso_3166_1")]
+        public string? Iso3166 { get; init; }
+
         [JsonPropertyName("published_at")]
         public DateTime? PublishedAt { get; init; }
     }
@@ -1158,5 +1793,35 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
 
         [JsonPropertyName("release_date")]
         public DateTime? ReleaseDate { get; init; }
+    }
+
+    private sealed record TmdbTranslationsResponse
+    {
+        [JsonPropertyName("translations")]
+        public List<TmdbTranslation> Translations { get; init; } = new();
+    }
+
+    private sealed record TmdbTranslation
+    {
+        [JsonPropertyName("iso_639_1")]
+        public string? Iso639 { get; init; }
+
+        [JsonPropertyName("iso_3166_1")]
+        public string? Iso3166 { get; init; }
+
+        [JsonPropertyName("data")]
+        public TmdbTranslationData? Data { get; init; }
+    }
+
+    private sealed record TmdbTranslationData
+    {
+        [JsonPropertyName("title")]
+        public string? Title { get; init; }
+
+        [JsonPropertyName("overview")]
+        public string? Overview { get; init; }
+
+        [JsonPropertyName("tagline")]
+        public string? Tagline { get; init; }
     }
 }

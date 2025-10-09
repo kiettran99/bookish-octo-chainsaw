@@ -250,8 +250,24 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 },
                 Videos: new[]
                 {
-                    new TrailerVideo("dune2-main", "Trailer chính thức", "https://img.youtube.com/vi/_19pRsZRiz4/hqdefault.jpg", "https://www.youtube.com/watch?v=_19pRsZRiz4", "YouTube"),
-                    new TrailerVideo("dune2-featurette", "Featurette: The Fremen", "https://img.youtube.com/vi/c0C6M0a8nRc/hqdefault.jpg", "https://www.youtube.com/watch?v=c0C6M0a8nRc", "YouTube")
+                    new TrailerVideo(
+                        "dune2-main",
+                        "Trailer chính thức",
+                        "https://img.youtube.com/vi/_19pRsZRiz4/hqdefault.jpg",
+                        "https://www.youtube.com/watch?v=_19pRsZRiz4",
+                        "https://www.youtube.com/embed/_19pRsZRiz4?autoplay=1",
+                        "YouTube",
+                        true,
+                        "Trailer"),
+                    new TrailerVideo(
+                        "dune2-featurette",
+                        "Featurette: The Fremen",
+                        "https://img.youtube.com/vi/c0C6M0a8nRc/hqdefault.jpg",
+                        "https://www.youtube.com/watch?v=c0C6M0a8nRc",
+                        "https://www.youtube.com/embed/c0C6M0a8nRc?autoplay=1",
+                        "YouTube",
+                        true,
+                        "Featurette")
                 },
                 Reviews: new[]
                 {
@@ -315,7 +331,15 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 },
                 Videos: new[]
                 {
-                    new TrailerVideo("insideout2-trailer", "Trailer chính thức", "https://img.youtube.com/vi/LEjhY15eCx0/hqdefault.jpg", "https://www.youtube.com/watch?v=LEjhY15eCx0", "YouTube")
+                    new TrailerVideo(
+                        "insideout2-trailer",
+                        "Trailer chính thức",
+                        "https://img.youtube.com/vi/LEjhY15eCx0/hqdefault.jpg",
+                        "https://www.youtube.com/watch?v=LEjhY15eCx0",
+                        "https://www.youtube.com/embed/LEjhY15eCx0?autoplay=1",
+                        "YouTube",
+                        true,
+                        "Trailer")
                 },
                 Reviews: new[]
                 {
@@ -379,7 +403,15 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 },
                 Videos: new[]
                 {
-                    new TrailerVideo("opp-trailer", "Trailer chính thức", "https://img.youtube.com/vi/uYPbbksJxIg/hqdefault.jpg", "https://www.youtube.com/watch?v=uYPbbksJxIg", "YouTube")
+                    new TrailerVideo(
+                        "opp-trailer",
+                        "Trailer chính thức",
+                        "https://img.youtube.com/vi/uYPbbksJxIg/hqdefault.jpg",
+                        "https://www.youtube.com/watch?v=uYPbbksJxIg",
+                        "https://www.youtube.com/embed/uYPbbksJxIg?autoplay=1",
+                        "YouTube",
+                        true,
+                        "Trailer")
                 },
                 Reviews: new[]
                 {
