@@ -27,6 +27,8 @@ export interface UserPagingParams {
   searchTerm?: string
   isBanned?: boolean
   isDeleted?: boolean
+  dateFrom?: string
+  dateTo?: string
 }
 
 export type UserPagingResponse = PagingCommonResponse<UserPagingModel>

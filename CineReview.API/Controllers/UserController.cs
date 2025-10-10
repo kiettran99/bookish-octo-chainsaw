@@ -1,5 +1,7 @@
 using CineReview.API.Attributes;
+using CineReview.Domain.AggregatesModel.ReviewAggregates;
 using CineReview.Domain.AggregatesModel.UserAggregates;
+using CineReview.Domain.Enums;
 using Common.Interfaces.Messaging;
 using Common.Models;
 using Common.SeedWork;
@@ -25,27 +27,40 @@ public class UserController : CommonController
 
     [HttpGet("profile")]
     [Authorize]
-    public async Task<IActionResult> GetProfile()
+    public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
     {
-        var response = await _unitOfWork.Repository<User>().GetQueryable()
-                            .Select(x => new UserProfileResponseModel
-                            {
-                                Id = x.Id,
-                                FullName = x.FullName,
-                                Email = x.Email,
-                                UserName = x.UserName,
-                                Avatar = x.Avatar,
-                                ExpriedRoleDate = x.ExpriedRoleDate,
-                                CreatedOnUtc = x.CreatedOnUtc
-                            })
-                            .FirstOrDefaultAsync();
-
-        if (response == null)
+        var userId = GetUserIdByToken();
+        if (!userId.HasValue)
         {
-            return NotFound();
+            return Unauthorized();
         }
 
-        return Ok(new ServiceResponse<UserProfileResponseModel>(response));
+        var profile = await GetUserProfileByIdAsync(userId.Value, cancellationToken);
+        if (profile is null)
+        {
+            return NotFound(new ServiceResponse<UserProfileResponseModel>("User not found"));
+        }
+
+        return Ok(new ServiceResponse<UserProfileResponseModel>(profile));
+    }
+
+    [HttpGet("{userName}")]
+    public async Task<IActionResult> GetProfileByUserName(string userName, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            return BadRequest(new ServiceResponse<UserProfileResponseModel>("Username is required"));
+        }
+
+        var normalized = userName.Trim();
+        var profile = await GetUserProfileByUserNameAsync(normalized, cancellationToken);
+
+        if (profile is null)
+        {
+            return NotFound(new ServiceResponse<UserProfileResponseModel>("User not found"));
+        }
+
+        return Ok(new ServiceResponse<UserProfileResponseModel>(profile));
     }
 
     [HttpPost("send-email")]
@@ -53,5 +68,93 @@ public class UserController : CommonController
     {
         await _sendMailPublisher.SendMailAsync(message);
         return Ok();
+    }
+
+    private async Task<UserProfileResponseModel?> GetUserProfileByIdAsync(int userId, CancellationToken cancellationToken)
+    {
+        return await BuildUserProfileAsync(
+            _unitOfWork.Repository<User>().GetQueryable()
+                .Where(user => user.Id == userId && !user.IsDeleted),
+            cancellationToken);
+    }
+
+    private async Task<UserProfileResponseModel?> GetUserProfileByUserNameAsync(string userName, CancellationToken cancellationToken)
+    {
+        return await BuildUserProfileAsync(
+            _unitOfWork.Repository<User>().GetQueryable()
+                .Where(user => user.UserName == userName && !user.IsDeleted),
+            cancellationToken);
+    }
+
+    private async Task<UserProfileResponseModel?> BuildUserProfileAsync(IQueryable<User> query, CancellationToken cancellationToken)
+    {
+        var projection = await query
+            .AsNoTracking()
+            .Select(user => new
+            {
+                user.Id,
+                user.UserName,
+                user.FullName,
+                user.Email,
+                user.Avatar,
+                user.ExpriedRoleDate,
+                user.CreatedOnUtc,
+                user.CommunicationScore,
+                user.Region,
+                user.IsBanned,
+                user.IsDeleted
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (projection is null)
+        {
+            return null;
+        }
+
+        var statsQuery = _unitOfWork.Repository<Review>().GetQueryable()
+            .AsNoTracking()
+            .Where(review => review.UserId == projection.Id && review.Status != ReviewStatus.Deleted);
+
+        var stats = await statsQuery
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                Total = group.Count(),
+                Released = group.Count(review => review.Status == ReviewStatus.Released),
+                Pending = group.Count(review => review.Status == ReviewStatus.Pending),
+                Tag = group.Count(review => review.Type == ReviewType.Tag),
+                Normal = group.Count(review => review.Type == ReviewType.Normal),
+                Average = group.Average(review => (double?)review.Rating)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var response = new UserProfileResponseModel
+        {
+            Id = projection.Id,
+            UserName = projection.UserName,
+            FullName = projection.FullName,
+            Email = projection.Email,
+            Avatar = projection.Avatar,
+            ExpriedRoleDate = projection.ExpriedRoleDate,
+            CreatedOnUtc = projection.CreatedOnUtc,
+            CommunicationScore = projection.CommunicationScore,
+            Region = projection.Region,
+            IsBanned = projection.IsBanned,
+            IsDeleted = projection.IsDeleted
+        };
+
+        if (stats is not null)
+        {
+            response.ReviewStats.TotalReviews = stats.Total;
+            response.ReviewStats.ReleasedReviews = stats.Released;
+            response.ReviewStats.PendingReviews = stats.Pending;
+            response.ReviewStats.TagReviews = stats.Tag;
+            response.ReviewStats.FreeformReviews = stats.Normal;
+            response.ReviewStats.AverageRating = stats.Average.HasValue
+                ? Math.Round(stats.Average.Value, 1)
+                : null;
+        }
+
+        return response;
     }
 }

@@ -1,0 +1,137 @@
+@inject IConfiguration Configuration
+
+@{
+    ViewData["Title"] ??= "Hồ sơ của tôi";
+    var apiBaseUrl = Configuration["CineReviewApi:BaseUrl"] ?? string.Empty;
+    var identityBaseUrl = Configuration["IdentityApi:BaseUrl"] ?? string.Empty;
+    var moviesBasePath = Url.Content("~/api/movies");
+    var initialPage = ViewData["InitialPage"] is int page ? page : 1;
+}
+
+<section class="profile-page">
+    <div class="container-xl">
+        <div class="profile-page__root" data-profile-root data-mode="self"
+             data-api-base-url="@apiBaseUrl"
+             data-identity-base-url="@identityBaseUrl"
+             data-movies-base-url="@moviesBasePath"
+             data-initial-page="@initialPage">
+
+            <div class="profile-message d-none" data-profile-message>
+                <div class="profile-message__card">
+                    <h1 class="profile-message__title" data-profile-message-title></h1>
+                    <p class="profile-message__body text-secondary" data-profile-message-body></p>
+                    <a class="btn btn-outline-light" href="/" data-profile-message-action>Quay về trang chủ</a>
+                </div>
+            </div>
+
+            <div class="profile-hero" data-profile-hero>
+                <div class="profile-hero__skeleton" data-profile-hero-skeleton>
+                    <div class="profile-hero__skeleton-avatar shimmer"></div>
+                    <div class="profile-hero__skeleton-lines">
+                        <span class="shimmer" style="width: 220px;"></span>
+                        <span class="shimmer" style="width: 140px;"></span>
+                        <span class="shimmer" style="width: 180px;"></span>
+                    </div>
+                    <div class="profile-hero__skeleton-stats">
+                        <span class="shimmer"></span>
+                        <span class="shimmer"></span>
+                        <span class="shimmer"></span>
+                        <span class="shimmer"></span>
+                    </div>
+                </div>
+
+                <div class="profile-hero__content d-none" data-profile-hero-content>
+                    <div class="profile-identity">
+                        <div class="profile-avatar" data-profile-avatar-wrapper>
+                            <img class="profile-avatar__image d-none" data-profile-avatar alt="Ảnh đại diện" loading="lazy" />
+                            <span class="profile-avatar__initials d-none" data-profile-initials></span>
+                        </div>
+                        <div class="profile-identity__meta">
+                            <div class="profile-identity__header">
+                                <h1 class="profile-identity__name" data-profile-display-name></h1>
+                                <span class="profile-badge d-none" data-profile-badge></span>
+                                <span class="profile-status profile-status--danger d-none" data-profile-banned>Bị khóa tạm thời</span>
+                            </div>
+                            <div class="profile-identity__username" data-profile-username></div>
+                            <div class="profile-identity__joined text-secondary" data-profile-joined></div>
+                        </div>
+                    </div>
+
+                    <div class="profile-stats" data-profile-stats>
+                        <div class="profile-stat">
+                            <div class="profile-stat__value" data-profile-stat="score">0</div>
+                            <div class="profile-stat__label">Điểm cộng đồng</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat__value" data-profile-stat="total">0</div>
+                            <div class="profile-stat__label">Tổng review</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat__value" data-profile-stat="released">0</div>
+                            <div class="profile-stat__label">Đã duyệt</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat__value" data-profile-stat="average">-</div>
+                            <div class="profile-stat__label">Điểm trung bình</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="profile-section" data-profile-reviews>
+                <div class="profile-section__header">
+                    <div>
+                        <h2 class="profile-section__title">Review từ cộng đồng</h2>
+                        <p class="text-secondary mb-0" data-profile-review-summary></p>
+                    </div>
+                    <div class="profile-section__meta d-none" data-profile-pagination-meta></div>
+                </div>
+
+                <div class="profile-reviews__skeleton" data-profile-reviews-skeleton>
+                    <div class="profile-review-skeleton shimmer"></div>
+                    <div class="profile-review-skeleton shimmer"></div>
+                    <div class="profile-review-skeleton shimmer"></div>
+                </div>
+
+                <div class="profile-section__empty d-none" data-profile-reviews-empty>
+                    <h3 class="mb-2">Chưa có review nào</h3>
+                    <p class="text-secondary mb-0">Khi bạn đăng review phim, chúng sẽ xuất hiện ở đây.</p>
+                </div>
+
+                <div class="profile-reviews__grid d-none" data-profile-reviews-grid></div>
+
+                <nav class="profile-pagination d-none" aria-label="Phân trang review" data-profile-pagination>
+                    <ul class="pagination pagination-sm justify-content-center mb-0" data-profile-pagination-list></ul>
+                </nav>
+            </section>
+        </div>
+    </div>
+
+    <template data-review-card-template>
+        <article class="profile-review-card shadow-sm">
+            <div class="profile-review-card__poster" data-review-poster>
+                <img class="d-none" alt="Poster phim" loading="lazy" data-review-poster-image />
+                <span class="profile-review-card__poster-fallback d-none" data-review-poster-fallback></span>
+            </div>
+            <div class="profile-review-card__body">
+                <header class="profile-review-card__header">
+                    <div class="profile-review-card__title-group">
+                        <h3 class="profile-review-card__title" data-review-movie-title></h3>
+                        <div class="profile-review-card__meta" data-review-meta></div>
+                    </div>
+                    <span class="profile-review-card__status" data-review-status></span>
+                </header>
+                <p class="profile-review-card__excerpt" data-review-description></p>
+                <div class="profile-review-card__tags" data-review-tags></div>
+                <footer class="profile-review-card__footer">
+                    <span class="profile-review-card__rating" data-review-rating></span>
+                    <span class="profile-review-card__timestamp" data-review-timestamp></span>
+                </footer>
+            </div>
+        </article>
+    </template>
+</section>
+
+@section Scripts {
+    <script src="~/js/profile-page.js" asp-append-version="true"></script>
+}

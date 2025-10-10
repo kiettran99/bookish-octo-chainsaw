@@ -1,3 +1,5 @@
+using Common.Enums;
+
 namespace Portal.Domain.Models.UserModels;
 
 public class UserProfileResponseModel
@@ -10,4 +12,9 @@ public class UserProfileResponseModel
     public DateTime? ExpriedRoleDate { get; set; }
 
     public DateTime CreatedOnUtc { get; set; }
+    public long CommunicationScore { get; set; }
+    public ERegion Region { get; set; }
+    public bool IsBanned { get; set; }
+    public bool IsDeleted { get; set; }
+    public UserReviewStatsResponseModel ReviewStats { get; set; } = new();
 }

@@ -1,5 +1,7 @@
 using CineReview.Client.Features.Movies;
+using CineReview.Client.Features.Users;
 using Microsoft.AspNetCore.Hosting.StaticWebAssets;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +10,7 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddMemoryCache();
 builder.Services.Configure<TmdbOptions>(builder.Configuration.GetSection(TmdbOptions.SectionName));
+builder.Services.Configure<CineReviewApiOptions>(builder.Configuration.GetSection(CineReviewApiOptions.SectionName));
 
 var tmdbOptions = builder.Configuration.GetSection(TmdbOptions.SectionName).Get<TmdbOptions>() ?? new TmdbOptions();
 if (!string.IsNullOrWhiteSpace(tmdbOptions.ApiKey) || !string.IsNullOrWhiteSpace(tmdbOptions.AccessToken))
@@ -42,6 +45,8 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
+
+app.MapControllers();
 
 
 app.Run();

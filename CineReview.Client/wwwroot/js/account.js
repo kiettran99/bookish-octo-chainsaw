@@ -48,6 +48,7 @@
         const nameLabel = root.querySelector("[data-auth-name]");
         const emailLabel = root.querySelector("[data-auth-email]");
         const refreshButton = root.querySelector("[data-auth-refresh]");
+        const profileLink = root.querySelector("[data-auth-profile]");
         const logoutButton = root.querySelector("[data-auth-logout]");
         const dropdownToggle = accountDropdown ? accountDropdown.querySelector(".account-toggle") : null;
 
@@ -336,6 +337,13 @@
                 }
 
                 fetchProfile(currentToken, true);
+            });
+        }
+
+        if (profileLink) {
+            profileLink.addEventListener("click", event => {
+                // Với link, để trình duyệt điều hướng tự nhiên tới /profile
+                // Nếu chưa đăng nhập, server sẽ hiện skeleton và rồi chuyển về home do thiếu token
             });
         }
 

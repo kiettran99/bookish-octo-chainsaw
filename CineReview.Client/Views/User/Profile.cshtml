@@ -1,0 +1,113 @@
+﻿@inject IConfiguration Configuration
+
+@{
+    var apiBaseUrl = Configuration["CineReviewApi:BaseUrl"] ?? string.Empty;
+    var moviesBasePath = Url.Content("~/api/movies");
+    var normalizedUserName = ViewData["ProfileUserName"] as string ?? string.Empty;
+    var initialPage = ViewData["InitialPage"] is int page ? page : 1;
+}
+
+<section class="profile-page">
+    <div class="container-xl">
+        <div class="profile-page__root" data-profile-root data-mode="public"
+             data-user-name="@normalizedUserName"
+             data-api-base-url="@apiBaseUrl"
+             data-movies-base-url="@moviesBasePath"
+             data-initial-page="@initialPage">
+
+            <div class="profile-message d-none" data-profile-message>
+                <div class="profile-message__card">
+                    <h1 class="profile-message__title" data-profile-message-title></h1>
+                    <p class="profile-message__body text-secondary" data-profile-message-body></p>
+                    <a class="btn btn-outline-light" href="/" data-profile-message-action>Quay về trang chủ</a>
+                </div>
+            </div>
+
+            <div class="profile-hero" data-profile-hero>
+                <div class="profile-hero__skeleton" data-profile-hero-skeleton>
+                    <div class="profile-hero__skeleton-avatar shimmer"></div>
+                    <div class="profile-hero__skeleton-lines">
+                        <span class="shimmer" style="width: 220px;"></span>
+                        <span class="shimmer" style="width: 140px;"></span>
+                        <span class="shimmer" style="width: 180px;"></span>
+                    </div>
+                    <div class="profile-hero__skeleton-stats">
+                        <span class="shimmer"></span>
+                        <span class="shimmer"></span>
+                        <span class="shimmer"></span>
+                        <span class="shimmer"></span>
+                    </div>
+                </div>
+
+                <div class="profile-hero__content d-none" data-profile-hero-content>
+                    <div class="profile-identity">
+                        <div class="profile-avatar" data-profile-avatar-wrapper>
+                            <img class="profile-avatar__image d-none" data-profile-avatar alt="Ảnh đại diện" loading="lazy" />
+                            <span class="profile-avatar__initials d-none" data-profile-initials></span>
+                        </div>
+                        <div class="profile-identity__meta">
+                            <div class="profile-identity__header">
+                                <h1 class="profile-identity__name" data-profile-display-name></h1>
+                                <span class="profile-badge d-none" data-profile-badge></span>
+                                <span class="profile-status profile-status--danger d-none" data-profile-banned>Bị khóa tạm thời</span>
+                            </div>
+                            <div class="profile-identity__username" data-profile-username></div>
+                            <div class="profile-identity__joined text-secondary" data-profile-joined></div>
+                        </div>
+                    </div>
+
+                    <div class="profile-stats" data-profile-stats>
+                        <div class="profile-stat">
+                            <div class="profile-stat__value" data-profile-stat="score">0</div>
+                            <div class="profile-stat__label">Điểm cộng đồng</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat__value" data-profile-stat="total">0</div>
+                            <div class="profile-stat__label">Tổng review</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat__value" data-profile-stat="released">0</div>
+                            <div class="profile-stat__label">Đã duyệt</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat__value" data-profile-stat="average">-</div>
+                            <div class="profile-stat__label">Điểm trung bình</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="profile-section profile-section--public" data-profile-public-section>
+                <div class="profile-overview">
+                    <div class="profile-overview__skeleton" data-profile-overview-skeleton>
+                        <span class="shimmer"></span>
+                        <span class="shimmer"></span>
+                        <span class="shimmer"></span>
+                    </div>
+                    <div class="profile-overview__content d-none" data-profile-overview-content>
+                        <h2 class="profile-section__title">Hoạt động tổng quan</h2>
+                        <p class="text-secondary mb-3" data-profile-overview-description></p>
+                        <div class="profile-overview__grid">
+                            <div class="profile-overview__item">
+                                <span class="profile-overview__label">Review chờ duyệt</span>
+                                <span class="profile-overview__value" data-profile-stat="pending">0</span>
+                            </div>
+                            <div class="profile-overview__item">
+                                <span class="profile-overview__label">Review dạng thẻ</span>
+                                <span class="profile-overview__value" data-profile-stat="tag">0</span>
+                            </div>
+                            <div class="profile-overview__item">
+                                <span class="profile-overview__label">Review tự do</span>
+                                <span class="profile-overview__value" data-profile-stat="freeform">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/profile-page.js" asp-append-version="true"></script>
+}
