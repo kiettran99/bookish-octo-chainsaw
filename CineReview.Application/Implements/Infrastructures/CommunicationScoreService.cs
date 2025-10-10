@@ -43,20 +43,39 @@ public class CommunicationScoreService : ICommunicationScoreService
             }
 
             // Use raw SQL for atomic update to avoid race conditions
-            var parameters = new Dictionary<string, object?>
+            var updatedOn = DateTime.UtcNow;
+
+            // Update User CommunicationScore
+            var userParameters = new Dictionary<string, object?>
             {
                 { "scoreChange", scoreChange },
-                { "updatedOn", DateTime.UtcNow },
+                { "updatedOn", updatedOn },
                 { "userId", reviewOwnerId }
             };
 
-            var sql = @"
+            var userSql = @"
                 UPDATE User 
                 SET CommunicationScore = CommunicationScore + @scoreChange,
                     UpdatedOnUtc = @updatedOn
                 WHERE Id = @userId";
 
-            await _unitOfWork.ExecuteAsync(sql, parameters, System.Data.CommandType.Text);
+            await _unitOfWork.ExecuteAsync(userSql, userParameters, System.Data.CommandType.Text);
+
+            // Update Review CommunicationScore
+            var reviewParameters = new Dictionary<string, object?>
+            {
+                { "scoreChange", scoreChange },
+                { "updatedOn", updatedOn },
+                { "reviewId", reviewId }
+            };
+
+            var reviewSql = @"
+                UPDATE Review 
+                SET CommunicationScore = CommunicationScore + @scoreChange,
+                    UpdatedOnUtc = @updatedOn
+                WHERE Id = @reviewId";
+
+            await _unitOfWork.ExecuteAsync(reviewSql, reviewParameters, System.Data.CommandType.Text);
 
             _logger.LogInformation(
                 "Successfully updated communication score for user {UserId} by {ScoreChange}",
@@ -64,8 +83,8 @@ public class CommunicationScoreService : ICommunicationScoreService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, 
-                "Error updating communication score for user {UserId}, review {ReviewId}", 
+            _logger.LogError(ex,
+                "Error updating communication score for user {UserId}, review {ReviewId}",
                 reviewOwnerId, reviewId);
             throw;
         }

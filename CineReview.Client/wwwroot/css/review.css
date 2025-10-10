@@ -598,6 +598,36 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Avatar link styling for community reviews */
+.community-review__avatar-link {
+    display: inline-block;
+    border-radius: 999px;
+    overflow: hidden;
+    line-height: 0;
+}
+
+.community-review__avatar-link:hover {
+    cursor: pointer;
+    transform: translateY(-2px);
+}
+
+.community-review__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    object-fit: cover;
+    display: block;
+}
+
+.community-review__avatar--placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    display: grid;
+    place-items: center;
+}
 #allReviewsModal .modal-body {
     padding: 1.5rem;
     min-height: 400px;

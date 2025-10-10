@@ -98,7 +98,7 @@
 .profile-avatar {
 	width: 104px;
 	height: 104px;
-	border-radius: 28px;
+	border-radius: 50%;
 	background: rgba(255, 255, 255, 0.06);
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	display: grid;
@@ -664,7 +664,7 @@
 	.profile-avatar {
 		width: 88px;
 		height: 88px;
-		border-radius: 22px;
+		border-radius: 50%;
 	}
 
 	.profile-section {

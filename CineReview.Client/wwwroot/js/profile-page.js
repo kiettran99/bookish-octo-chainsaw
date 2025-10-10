@@ -345,11 +345,8 @@
 
         setStat("score", profile.communicationScore);
         setStat("total", profile.reviewStats.total);
-        setStat("released", profile.reviewStats.released);
-        setStat("average", profile.reviewStats.average);
-        setStat("pending", profile.reviewStats.pending);
-        setStat("tag", profile.reviewStats.tag);
-        setStat("freeform", profile.reviewStats.freeform);
+        setStat("fair", profile.reviewStats.fair);
+        setStat("unfair", profile.reviewStats.unfair);
 
         if (heroSkeleton) {
             setHidden(heroSkeleton, true);
@@ -363,7 +360,7 @@
     function renderReviewSummary(profile, pageData) {
         if (reviewSummaryEl) {
             const stats = profile.reviewStats;
-            reviewSummaryEl.textContent = `Tổng cộng ${formatNumber(stats.total)} review, với ${formatNumber(stats.tag)} dạng thẻ và ${formatNumber(stats.freeform)} bài tự do.`;
+            reviewSummaryEl.textContent = `Tổng cộng ${formatNumber(stats.total)} review, bao gồm ${formatNumber(stats.fair)} review công tâm và ${formatNumber(stats.unfair)} review không công tâm.`;
         }
         if (paginationMetaEl) {
             if (pageData.totalPages > 1) {
@@ -387,11 +384,8 @@
             communicationScore: payload.communicationScore ?? 0,
             reviewStats: {
                 total: stats.totalReviews ?? 0,
-                released: stats.releasedReviews ?? 0,
-                pending: stats.pendingReviews ?? 0,
-                tag: stats.tagReviews ?? 0,
-                freeform: stats.freeformReviews ?? 0,
-                average: stats.averageRating ?? null
+                fair: stats.fairReviews ?? 0,
+                unfair: stats.unfairReviews ?? 0
             }
         };
     }

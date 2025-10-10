@@ -111,20 +111,16 @@ public class UserController : CommonController
             return null;
         }
 
-        var statsQuery = _unitOfWork.Repository<Review>().GetQueryable()
+        var stats = await _unitOfWork.Repository<Review>().GetQueryable()
             .AsNoTracking()
-            .Where(review => review.UserId == projection.Id && review.Status != ReviewStatus.Deleted);
-
-        var stats = await statsQuery
+            .Where(review => review.UserId == projection.Id
+                && (review.Type == ReviewType.Tag || review.Status == ReviewStatus.Released))
             .GroupBy(_ => 1)
             .Select(group => new
             {
                 Total = group.Count(),
-                Released = group.Count(review => review.Status == ReviewStatus.Released),
-                Pending = group.Count(review => review.Status == ReviewStatus.Pending),
-                Tag = group.Count(review => review.Type == ReviewType.Tag),
-                Normal = group.Count(review => review.Type == ReviewType.Normal),
-                Average = group.Average(review => (double?)review.Rating)
+                Fair = group.Count(review => review.CommunicationScore > 0),
+                Unfair = group.Count(review => review.CommunicationScore < 0)
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -146,13 +142,8 @@ public class UserController : CommonController
         if (stats is not null)
         {
             response.ReviewStats.TotalReviews = stats.Total;
-            response.ReviewStats.ReleasedReviews = stats.Released;
-            response.ReviewStats.PendingReviews = stats.Pending;
-            response.ReviewStats.TagReviews = stats.Tag;
-            response.ReviewStats.FreeformReviews = stats.Normal;
-            response.ReviewStats.AverageRating = stats.Average.HasValue
-                ? Math.Round(stats.Average.Value, 1)
-                : null;
+            response.ReviewStats.FairReviews = stats.Fair;
+            response.ReviewStats.UnfairReviews = stats.Unfair;
         }
 
         return response;

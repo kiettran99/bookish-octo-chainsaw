@@ -1365,15 +1365,15 @@
             const userName = review.userName || "Thành viên";
             const userFullName = review.userFullName || userName;
             const initials = safeInitials(userName);
-            const supportScoreRaw = parseNumberOrNull(review.userCommunicationScore) ?? 0;
+            const supportScoreRaw = parseNumberOrNull(review.communicationScore) ?? 0;
             const supportScoreRounded = Math.round(supportScoreRaw);
             const supportTone = supportScoreRounded > 0 ? "positive" : supportScoreRounded < 0 ? "negative" : "neutral";
             const supportValue = supportScoreRounded > 0 ? `+${supportScoreRounded}` : supportScoreRounded.toString();
             const createdAt = formatDate(review.createdOnUtc);
-            
+
             // Get reviewer badge based on communication score
             const reviewerBadge = getReviewerBadge(review.userCommunicationScore);
-            const badgeMarkup = reviewerBadge.show 
+            const badgeMarkup = reviewerBadge.show
                 ? `<span class="community-review__badge ${reviewerBadge.class}">${escapeHtml(reviewerBadge.label)}</span>`
                 : "";
 
@@ -1464,11 +1464,9 @@
                     <div class="community-review__content">
                         <header class="community-review__header">
                             <div class="community-review__author">
-                                ${review.userAvatar
-                    ? `<img src="${review.userAvatar}" alt="${userName}" class="community-review__avatar" loading="lazy" />`
-                    : `<div class="community-review__avatar community-review__avatar--placeholder">
-                                        <span class="community-review__initials">${initials}</span>
-                                       </div>`}
+                    ${review.userAvatar
+                    ? `<a href="/users/${encodeURIComponent(review.userName || '')}" class="community-review__avatar-link" title="Xem hồ sơ ${escapeHtml(userFullName)}"><img src="${review.userAvatar}" alt="${userName}" class="community-review__avatar" loading="lazy" /></a>`
+                    : `<a href="/users/${encodeURIComponent(review.userName || '')}" class="community-review__avatar-link" title="Xem hồ sơ ${escapeHtml(userFullName)}"><div class="community-review__avatar community-review__avatar--placeholder"><span class="community-review__initials">${initials}</span></div></a>`}
                                 <div>
                                     <span class="community-review__name">${escapeHtml(userFullName)}</span>
                                     ${badgeMarkup}
@@ -1484,16 +1482,18 @@
                             <span>${createdAt}</span>
                         </footer>
                     </div>
+                    ${!isOwnReview ? `
                     <div class="community-review__actions" data-review-actions="${reviewId}" data-review-user-id="${review.userId}" data-is-own-review="${isOwnReview}">
-                        <button type="button" class="community-review__action community-review__action--fair" data-review-action="fair" data-review-id="${reviewId}" data-review-count="fair" aria-pressed="false" ${disableAttr}>
+                        <button type="button" class="community-review__action community-review__action--fair" data-review-action="fair" data-review-id="${reviewId}" data-review-count="fair" aria-pressed="false">
                             <i class="bi bi-hand-thumbs-up"></i>
                             <span class="community-review__action-label">Công tâm</span>
                         </button>
-                        <button type="button" class="community-review__action community-review__action--unfair" data-review-action="unfair" data-review-id="${reviewId}" data-review-count="unfair" aria-pressed="false" ${disableAttr}>
+                        <button type="button" class="community-review__action community-review__action--unfair" data-review-action="unfair" data-review-id="${reviewId}" data-review-count="unfair" aria-pressed="false">
                             <i class="bi bi-hand-thumbs-down"></i>
                             <span class="community-review__action-label">Không công tâm</span>
                         </button>
                     </div>
+                    ` : ''}
                 </article>
             `;
 
