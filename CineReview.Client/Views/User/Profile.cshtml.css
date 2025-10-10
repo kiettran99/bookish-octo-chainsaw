@@ -294,6 +294,11 @@
     position: relative;
     aspect-ratio: 2 / 3;
     width: 140px;
+    box-sizing: border-box; /* ensure padding included in width */
+    padding: 0.75rem; /* add internal spacing so poster doesn't touch edges */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .profile-review-card__poster img {
@@ -301,6 +306,17 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    border-radius: 8px; /* round the poster inside the padded container */
+}
+
+.profile-review-card__poster-fallback {
+    display: grid;
+    place-items: center;
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.6);
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .profile-review-card__poster-fallback {
