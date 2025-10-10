@@ -309,7 +309,7 @@ else
         <section class="detail-section" id="reviews">
             <div class="container-xl" data-movie-id="@(summary?.Id ?? 0)" data-review-base-url="@ViewBag.ReviewBasePath" data-review-initial-page="@((int)(ViewBag.ReviewPage ?? 1))">
                 <div class="section-header">
-                    <h2 class="h3 text-white mb-0">Review từ cộng đồng</h2>
+                    <h2 id="community-reviews" class="h3 text-white mb-0">Review từ cộng đồng</h2>
                     <div class="section-header__actions">
                         <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-2" data-write-review>
                             <i class="bi bi-pencil-square"></i>

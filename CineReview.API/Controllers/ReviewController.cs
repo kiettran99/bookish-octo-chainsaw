@@ -1,7 +1,6 @@
 using CineReview.API.Attributes;
 using CineReview.Application.Interfaces.Infrastructures;
 using CineReview.Domain.Models.ReviewModels;
-using Common.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CineReview.API.Controllers;
@@ -31,7 +30,7 @@ public class ReviewController : CommonController
         }
 
         var response = await _reviewService.CreateReviewAsync(request, userId.Value);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -54,7 +53,7 @@ public class ReviewController : CommonController
         }
 
         var response = await _reviewService.UpdateReviewAsync(request, userId.Value);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -77,7 +76,7 @@ public class ReviewController : CommonController
         }
 
         var response = await _reviewService.DeleteReviewAsync(reviewId, userId.Value);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -94,7 +93,7 @@ public class ReviewController : CommonController
     public async Task<IActionResult> ApproveReview(int reviewId)
     {
         var response = await _reviewService.ApproveReviewAsync(reviewId);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -110,7 +109,7 @@ public class ReviewController : CommonController
     public async Task<IActionResult> GetReview(int reviewId)
     {
         var response = await _reviewService.GetReviewByIdAsync(reviewId);
-        
+
         if (!response.IsSuccess)
         {
             return NotFound(response);
@@ -126,7 +125,7 @@ public class ReviewController : CommonController
     public async Task<IActionResult> GetReviews([FromQuery] ReviewListRequestModel request)
     {
         var response = await _reviewService.GetReviewsAsync(request);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -159,7 +158,7 @@ public class ReviewController : CommonController
         };
 
         var response = await _reviewService.GetReviewsAsync(request);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -192,7 +191,7 @@ public class ReviewController : CommonController
         };
 
         var response = await _reviewService.GetReviewsAsync(request);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -216,7 +215,7 @@ public class ReviewController : CommonController
         };
 
         var response = await _reviewService.GetReviewsAsync(request);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -251,7 +250,7 @@ public class ReviewController : CommonController
         };
 
         var response = await _reviewService.GetReviewsAsync(request);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -278,7 +277,7 @@ public class ReviewController : CommonController
         }
 
         var response = await _reviewService.RateReviewAsync(request, userId.Value);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -295,7 +294,7 @@ public class ReviewController : CommonController
     public async Task<IActionResult> RecalculateCommunicationScore(int reviewId)
     {
         var response = await _reviewService.RecalculateCommunicationScoreAsync(reviewId);
-        
+
         if (!response.IsSuccess)
         {
             return BadRequest(response);
@@ -333,7 +332,7 @@ public class ReviewController : CommonController
                 .ToList();
 
             var response = await _reviewService.GetBatchRatingsForUserAsync(ids, userId.Value);
-            
+
             if (!response.IsSuccess)
             {
                 return BadRequest(response);

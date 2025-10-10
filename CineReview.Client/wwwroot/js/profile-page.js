@@ -21,7 +21,8 @@
         totalPages: 1,
         pageSize: 10,
         loadingReviews: false,
-        lastReviewRequestId: 0
+        lastReviewRequestId: 0,
+        activeTags: [] // Cache danh sách tags để resolve tagName
     };
 
     const heroSection = root.querySelector("[data-profile-hero]");
@@ -39,7 +40,6 @@
     const joinedEl = root.querySelector("[data-profile-joined]");
     const avatarImg = root.querySelector("[data-profile-avatar]");
     const initialsEl = root.querySelector("[data-profile-initials]");
-    const statsRoot = root.querySelector("[data-profile-stats]");
     const reviewSummaryEl = root.querySelector("[data-profile-review-summary]");
     const paginationMetaEl = root.querySelector("[data-profile-pagination-meta]");
 
@@ -51,10 +51,6 @@
     const paginationList = root.querySelector("[data-profile-pagination-list]");
     const reviewTemplate = document.querySelector("[data-review-card-template]");
 
-    const overviewSection = root.querySelector("[data-profile-public-section]");
-    const overviewSkeleton = root.querySelector("[data-profile-overview-skeleton]");
-    const overviewContent = root.querySelector("[data-profile-overview-content]");
-    const overviewDescription = root.querySelector("[data-profile-overview-description]");
 
     const numberFormatter = new Intl.NumberFormat("vi-VN");
     const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -363,26 +359,6 @@
         }
     }
 
-    function renderOverview(profile) {
-        if (!overviewSection) {
-            return;
-        }
-        if (overviewSkeleton) {
-            setHidden(overviewSkeleton, true);
-        }
-        if (overviewDescription) {
-            const stats = profile.reviewStats;
-            if (stats.total > 0) {
-                overviewDescription.textContent = `Tổng cộng ${formatNumber(stats.total)} review, gồm ${formatNumber(stats.tag)} dạng thẻ và ${formatNumber(stats.freeform)} bài tự do.`;
-            } else {
-                overviewDescription.textContent = "Người dùng này chưa có nhiều hoạt động công khai.";
-            }
-        }
-        if (overviewContent) {
-            setHidden(overviewContent, false);
-        }
-        setHidden(overviewSection, false);
-    }
 
     function renderReviewSummary(profile, pageData) {
         if (reviewSummaryEl) {
@@ -435,6 +411,22 @@
         };
     }
 
+    async function loadActiveTags() {
+        if (state.activeTags.length > 0) {
+            return state.activeTags;
+        }
+        try {
+            const url = buildApiUrl("/api/tag/active");
+            const payload = await fetchJson(url, { timeout: 10000 });
+            const data = ensureServiceResponse(payload);
+            state.activeTags = Array.isArray(data) ? data : [];
+            return state.activeTags;
+        } catch (error) {
+            console.warn("Không thể tải danh sách tags", error);
+            return [];
+        }
+    }
+
     function parseTags(raw) {
         if (!raw) {
             return [];
@@ -453,10 +445,34 @@
         return value
             .map((item) => ({
                 id: Number(item?.tagId),
-                name: typeof item?.tagName === "string" ? item.tagName : "",
+                name: typeof item?.tagName === "string" ? item.tagName : null,
                 rating: Number(item?.rating)
             }))
-            .filter((item) => item.name);
+            .filter((item) => Number.isFinite(item.id) && item.id > 0);
+    }
+
+    function resolveTagNames(tags, activeTags) {
+        if (!Array.isArray(tags) || tags.length === 0) {
+            return [];
+        }
+        if (!Array.isArray(activeTags) || activeTags.length === 0) {
+            return tags.map(tag => ({
+                ...tag,
+                name: tag.name || `Tag #${tag.id}`
+            }));
+        }
+
+        const tagMap = new Map();
+        activeTags.forEach(tag => {
+            if (tag && Number.isFinite(tag.id)) {
+                tagMap.set(tag.id, tag.name || `Tag #${tag.id}`);
+            }
+        });
+
+        return tags.map(tag => ({
+            ...tag,
+            name: tag.name || tagMap.get(tag.id) || `Tag #${tag.id}`
+        }));
     }
 
     function calculateTagAverage(tags) {
@@ -469,6 +485,36 @@
         }
         const sum = validRatings.reduce((total, current) => total + current, 0);
         return sum / validRatings.length;
+    }
+
+    /**
+     * Render rating bar with 5 cells (each cell = 2 points on 1-10 scale)
+     * @param {number} rating - Rating value from 1-10
+     * @returns {string} HTML markup for rating bar
+     */
+    function renderRatingBar(rating) {
+        const normalized = Math.max(0, Math.min(10, Number(rating) || 0));
+        const totalCells = 5;
+
+        const cellsHtml = Array.from({ length: totalCells }, (_, index) => {
+            const cellStart = index * 2;
+            const valueWithinCell = Math.min(Math.max(normalized - cellStart, 0), 2);
+            const fillPercent = Math.max(0, Math.min(100, (valueWithinCell / 2) * 100));
+            const isFilled = fillPercent >= 99;
+            const hasFill = fillPercent > 0;
+
+            const cellClasses = ["rating-bar__cell"];
+            if (isFilled) cellClasses.push("rating-bar__cell--filled");
+            if (hasFill && !isFilled) cellClasses.push("rating-bar__cell--partial");
+
+            return `
+                <span class="${cellClasses.join(" ")}">
+                    <span class="rating-bar__fill" style="width: ${fillPercent}%;"></span>
+                </span>
+            `;
+        }).join("");
+
+        return `<div class="rating-bar">${cellsHtml}</div>`;
     }
 
     function getReviewStatusMeta(status) {
@@ -517,7 +563,19 @@
             const tagsEl = clone.querySelector("[data-review-tags]");
             const ratingEl = clone.querySelector("[data-review-rating]");
             const timestampEl = clone.querySelector("[data-review-timestamp]");
-            const tags = parseTags(review.descriptionTag);
+            const parsedTags = parseTags(review.descriptionTag);
+            const tags = resolveTagNames(parsedTags, state.activeTags);
+
+            // Thêm sự kiện click để chuyển trang chi tiết review
+            clone.style.cursor = "pointer";
+            clone.addEventListener("click", (e) => {
+                // Tránh click vào link bên trong card (nếu có)
+                if (e.target && (e.target.tagName === "A" || e.target.closest("a"))) return;
+                // Chuyển hướng về /movies/<tmdbMovieId>#community-reviews
+                if (Number.isInteger(review.movieId) && review.movieId > 0) {
+                    window.location.href = `/movies/${review.movieId}#community-reviews`;
+                }
+            });
 
             const movie = movieLookup.get(review.movieId) || null;
             if (movie && posterImage) {
@@ -560,6 +618,10 @@
             if (descriptionEl) {
                 const hasDescription = typeof review.description === "string" && review.description.trim().length > 0;
                 if (hasDescription) {
+                    // Thêm class đặc biệt cho freeform review để nhấn mạnh nội dung
+                    if (review.type === 1) {
+                        descriptionEl.classList.add("profile-review-card__freeform-text");
+                    }
                     descriptionEl.textContent = truncate(review.description, 320);
                     setHidden(descriptionEl, false);
                 } else {
@@ -573,16 +635,40 @@
                     setHidden(tagsEl, true);
                 } else {
                     setHidden(tagsEl, false);
+
+                    const tagsContainer = document.createElement("div");
+                    tagsContainer.className = "profile-review-card__tags-container";
+
                     tags.forEach((tag) => {
-                        const chip = document.createElement("span");
-                        chip.className = "profile-review-card__tag";
-                        const label = document.createElement("span");
-                        label.textContent = `${Number.isFinite(tag.rating) ? tag.rating : "-"}`;
-                        const text = document.createTextNode(` ${tag.name}`);
-                        chip.appendChild(label);
-                        chip.appendChild(text);
-                        tagsEl.appendChild(chip);
+                        const tagItem = document.createElement("div");
+                        tagItem.className = "profile-review-card__tag-metric";
+
+                        const tagHeader = document.createElement("div");
+                        tagHeader.className = "profile-review-card__tag-header";
+
+                        const tagName = document.createElement("span");
+                        tagName.className = "profile-review-card__tag-name";
+                        tagName.innerHTML = `<i class="bi bi-tag-fill me-2"></i>${tag.name}`;
+
+                        const tagScore = document.createElement("span");
+                        tagScore.className = "profile-review-card__tag-score";
+                        tagScore.textContent = Number.isFinite(tag.rating) ? `${tag.rating}/10` : "-";
+
+                        tagHeader.appendChild(tagName);
+                        tagHeader.appendChild(tagScore);
+                        tagItem.appendChild(tagHeader);
+
+                        if (Number.isFinite(tag.rating)) {
+                            const ratingBar = document.createElement("div");
+                            ratingBar.className = "profile-review-card__tag-bar";
+                            ratingBar.innerHTML = renderRatingBar(tag.rating);
+                            tagItem.appendChild(ratingBar);
+                        }
+
+                        tagsContainer.appendChild(tagItem);
                     });
+
+                    tagsEl.appendChild(tagsContainer);
                 }
             }
 
@@ -593,9 +679,11 @@
             }
 
             if (timestampEl) {
-                timestampEl.textContent = review.updatedOnUtc
-                    ? `Cập nhật ${formatDateTimeUtc(review.updatedOnUtc)}`
-                    : `Tạo ${formatDateTimeUtc(review.createdOnUtc)}`;
+                if (review.updatedOnUtc) {
+                    timestampEl.textContent = `Cập nhật ${formatDateTimeUtc(review.updatedOnUtc)}`;
+                } else {
+                    setHidden(timestampEl, true);
+                }
             }
 
             fragment.appendChild(clone);
@@ -792,6 +880,9 @@
             const movieIds = mapped.map((item) => item.movieId);
             const movieLookup = await fetchMovieSummaries(movieIds, token);
 
+            // Load active tags để resolve tag names
+            await loadActiveTags();
+
             renderReviewSummary(state.profile, { page: pageNumber, totalPages });
             renderReviews({ page: pageNumber, totalPages }, mapped, movieLookup);
         } catch (error) {
@@ -865,7 +956,6 @@
             const profile = mapProfilePayload(profilePayload);
             state.profile = profile;
             renderProfile(profile);
-            renderOverview(profile);
         } catch (error) {
             handleProfileError(error, {
                 notFound: `Không tìm thấy hồ sơ cho người dùng ${userName}.`,
