@@ -401,7 +401,8 @@
             descriptionTag: item.descriptionTag,
             createdOnUtc: item.createdOnUtc,
             updatedOnUtc: item.updatedOnUtc,
-            communicationScore: item.communicationScore
+            communicationScore: item.communicationScore,
+            rejectReason: item.rejectReason
         };
     }
 
@@ -516,7 +517,7 @@
             case 1:
                 return { label: "Đã duyệt", className: "profile-review-card__status--released" };
             case 2:
-                return { label: "Đã xóa", className: "profile-review-card__status--deleted" };
+                return { label: "Từ chối", className: "profile-review-card__status--deleted" };
             default:
                 return { label: "Chờ duyệt", className: "profile-review-card__status--pending" };
         }
@@ -561,13 +562,57 @@
             const tags = resolveTagNames(parsedTags, state.activeTags);
 
             // Thêm sự kiện click để chuyển trang chi tiết review
+            // Chỉ điều hướng khi người dùng click vào vùng nền/non-interactive của card.
             clone.style.cursor = "pointer";
             clone.addEventListener("click", (e) => {
-                // Tránh click vào link bên trong card (nếu có)
-                if (e.target && (e.target.tagName === "A" || e.target.closest("a"))) return;
-                // Chuyển hướng về /movies/<tmdbMovieId>#community-reviews
-                if (Number.isInteger(review.movieId) && review.movieId > 0) {
-                    window.location.href = `/movies/${review.movieId}#community-reviews`;
+                try {
+                    // Nếu sự kiện đã bị preventDefault hoặc là nhấp chuột không phải nút trái
+                    if (e.defaultPrevented) return;
+                    if (e.button !== 0) return; // chỉ xử lý left-click
+
+                    // Nếu người dùng giữ phím Ctrl/Meta/Shift/Alt thì giữ hành vi mặc định (ví dụ mở tab mới)
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+
+                    // Các selector tương tác: nếu click nằm trong các phần tử này thì KHÔNG điều hướng
+                    const interactiveSelector = [
+                        'a',
+                        'button',
+                        'input',
+                        'textarea',
+                        'select',
+                        'label',
+                        '[role="button"]',
+                        '[role="link"]',
+                        '[data-review-poster-image]',
+                        '[data-review-poster-fallback]',
+                        '.profile-review-card__tag-metric',
+                        '.profile-review-card__tag-name',
+                        '.profile-review-card__tag-score',
+                        '.rating-bar__cell',
+                        '.rating-bar__fill',
+                        '[data-review-meta]',
+                        '[data-review-description]',
+                        '[data-review-reject-reason]',
+                        '[data-review-status]',
+                        '[data-review-rating]',
+                        '[data-review-timestamp]',
+                        '.btn',
+                        '.badge',
+                        'svg',
+                        'path'
+                    ].join(',');
+
+                    if (e.target && e.target.closest && e.target.closest(interactiveSelector)) {
+                        return;
+                    }
+
+                    // Nếu không phải interactive area thì điều hướng tới trang phim
+                    if (Number.isInteger(review.movieId) && review.movieId > 0) {
+                        window.location.href = `/movies/${review.movieId}#community-reviews`;
+                    }
+                } catch (err) {
+                    // An toàn: nếu có lỗi trong handler, không làm đứt trải nghiệm
+                    console.error('Error handling review card click', err);
                 }
             });
 
@@ -611,6 +656,21 @@
                     statusEl.style.display = "";
                 } else {
                     statusEl.style.display = "none";
+                }
+            }
+
+            // Hiển thị reject reason nếu review bị từ chối (status = 2)
+            const rejectReasonEl = clone.querySelector("[data-review-reject-reason]");
+            if (rejectReasonEl) {
+                const hasRejectReason = review.status === 2 && typeof review.rejectReason === "string" && review.rejectReason.trim().length > 0;
+                if (hasRejectReason) {
+                    const reasonText = rejectReasonEl.querySelector("[data-reject-reason-text]");
+                    if (reasonText) {
+                        reasonText.textContent = review.rejectReason;
+                    }
+                    setHidden(rejectReasonEl, false);
+                } else {
+                    setHidden(rejectReasonEl, true);
                 }
             }
 

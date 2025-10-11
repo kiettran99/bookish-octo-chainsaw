@@ -295,18 +295,6 @@ public class ReviewService : IReviewService
             {
                 query = query.Where(r => r.Status == request.Status.Value);
             }
-            else
-            {
-                // By default, don't show deleted reviews
-                query = query.Where(r => r.Status != ReviewStatus.Deleted);
-
-                // Also filter out Normal (Freeform) reviews that are Pending
-                // Tag reviews can be shown even if Pending
-                // Currently we show all history
-                // query = query.Where(r =>
-                //     r.Type == ReviewType.Tag ||
-                //     (r.Type == ReviewType.Normal && r.Status == ReviewStatus.Released));
-            }
 
             // Filter by ReviewType
             if (request.Type.HasValue)

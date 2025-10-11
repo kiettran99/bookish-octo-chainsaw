@@ -10,11 +10,9 @@
 
 <section class="profile-page">
     <div class="container-xl">
-        <div class="profile-page__root" data-profile-root data-mode="self"
-             data-api-base-url="@apiBaseUrl"
-             data-identity-base-url="@identityBaseUrl"
-             data-movies-base-url="@moviesBasePath"
-             data-initial-page="@initialPage">
+        <div class="profile-page__root" data-profile-root data-mode="self" data-api-base-url="@apiBaseUrl"
+            data-identity-base-url="@identityBaseUrl" data-movies-base-url="@moviesBasePath"
+            data-initial-page="@initialPage">
 
             <div class="profile-message d-none" data-profile-message>
                 <div class="profile-message__card">
@@ -43,14 +41,16 @@
                 <div class="profile-hero__content d-none" data-profile-hero-content>
                     <div class="profile-identity">
                         <div class="profile-avatar" data-profile-avatar-wrapper>
-                            <img class="profile-avatar__image d-none" data-profile-avatar alt="Ảnh đại diện" loading="lazy" />
+                            <img class="profile-avatar__image d-none" data-profile-avatar alt="Ảnh đại diện"
+                                loading="lazy" />
                             <span class="profile-avatar__initials d-none" data-profile-initials></span>
                         </div>
                         <div class="profile-identity__meta">
                             <div class="profile-identity__header">
                                 <h1 class="profile-identity__name" data-profile-display-name></h1>
                                 <span class="profile-badge d-none" data-profile-badge></span>
-                                <span class="profile-status profile-status--danger d-none" data-profile-banned>Bị khóa tạm thời</span>
+                                <span class="profile-status profile-status--danger d-none" data-profile-banned>Bị khóa
+                                    tạm thời</span>
                             </div>
                             <div class="profile-identity__username" data-profile-username></div>
                             <div class="profile-identity__joined text-secondary" data-profile-joined></div>
@@ -81,7 +81,7 @@
             <section class="profile-section" data-profile-reviews>
                 <div class="profile-section__header">
                     <div>
-                        <h2 class="profile-section__title">Review từ cộng đồng</h2>
+                        <h2 class="profile-section__title">Review của bạn</h2>
                         <p class="text-secondary mb-0" data-profile-review-summary></p>
                     </div>
                     <div class="profile-section__meta d-none" data-profile-pagination-meta></div>
@@ -121,6 +121,15 @@
                     </div>
                     <span class="profile-review-card__status" data-review-status></span>
                 </header>
+                <div class="profile-review-card__reject-reason d-none" data-review-reject-reason>
+                    <div class="profile-review-card__reject-icon">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div class="profile-review-card__reject-content">
+                        <strong class="profile-review-card__reject-title">Lý do từ chối:</strong>
+                        <span class="profile-review-card__reject-text" data-reject-reason-text></span>
+                    </div>
+                </div>
                 <p class="profile-review-card__excerpt" data-review-description></p>
                 <div class="profile-review-card__tags" data-review-tags></div>
                 <footer class="profile-review-card__footer">

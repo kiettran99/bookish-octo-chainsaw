@@ -32,7 +32,7 @@
     const REVIEW_STATUS_LABELS = {
         [REVIEW_STATUS.PENDING]: "Chờ duyệt",
         [REVIEW_STATUS.RELEASED]: "Đã duyệt",
-        [REVIEW_STATUS.DELETED]: "Đã xóa"
+        [REVIEW_STATUS.DELETED]: "Từ chối"
     };
 
     // Helper functions
