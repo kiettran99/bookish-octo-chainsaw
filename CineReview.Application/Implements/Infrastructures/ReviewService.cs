@@ -302,9 +302,10 @@ public class ReviewService : IReviewService
 
                 // Also filter out Normal (Freeform) reviews that are Pending
                 // Tag reviews can be shown even if Pending
-                query = query.Where(r =>
-                    r.Type == ReviewType.Tag ||
-                    (r.Type == ReviewType.Normal && r.Status == ReviewStatus.Released));
+                // Currently we show all history
+                // query = query.Where(r =>
+                //     r.Type == ReviewType.Tag ||
+                //     (r.Type == ReviewType.Normal && r.Status == ReviewStatus.Released));
             }
 
             // Filter by ReviewType

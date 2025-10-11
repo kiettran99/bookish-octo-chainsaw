@@ -604,9 +604,14 @@
             }
 
             if (statusEl) {
-                const statusMeta = getReviewStatusMeta(review.status);
-                statusEl.textContent = statusMeta.label;
-                statusEl.className = `profile-review-card__status ${statusMeta.className}`;
+                if (review.type === 1) {
+                    const statusMeta = getReviewStatusMeta(review.status);
+                    statusEl.textContent = statusMeta.label;
+                    statusEl.className = `profile-review-card__status ${statusMeta.className}`;
+                    statusEl.style.display = "";
+                } else {
+                    statusEl.style.display = "none";
+                }
             }
 
             if (descriptionEl) {
@@ -851,7 +856,7 @@
         const requestId = ++state.lastReviewRequestId;
 
         try {
-            const url = buildApiUrl(`/api/review/user/${state.profile.id}?page=${page}&pageSize=${state.pageSize}`);
+            const url = buildApiUrl(`/api/review/my-reviews?page=${page}&pageSize=${state.pageSize}`);
             const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
             const payload = await fetchJson(url, { headers });
             if (requestId !== state.lastReviewRequestId) {

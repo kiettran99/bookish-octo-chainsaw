@@ -150,7 +150,7 @@ public sealed class UserProfileDataProvider : IUserProfileDataProvider
 
     private async Task<UserReviewPage> GetReviewsAsync(int userId, int page, CancellationToken cancellationToken)
     {
-        var url = $"api/review/user/{userId}?page={page}&pageSize={DefaultReviewPageSize}";
+        var url = $"api/review/my-reviews?page={page}&pageSize={DefaultReviewPageSize}";
         using var response = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.NotFound)

@@ -157,11 +157,18 @@ public class ReviewController : CommonController
     }
 
     /// <summary>
-    /// Get reviews by a specific user
+    /// Get reviews for the current logged-in user
     /// </summary>
-    [HttpGet("user/{userId}")]
-    public async Task<IActionResult> GetUserReviews(int userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    [HttpGet("my-reviews")]
+    [Authorize]
+    public async Task<IActionResult> GetMyReviews([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
+        var userId = GetUserIdByToken();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
         if (page < 1)
         {
             page = 1;
@@ -174,7 +181,7 @@ public class ReviewController : CommonController
 
         var request = new ReviewListRequestModel
         {
-            UserId = userId,
+            UserId = userId.Value,
             Page = page,
             PageSize = pageSize
         };
@@ -187,34 +194,6 @@ public class ReviewController : CommonController
         }
 
         return Ok(response);
-    }
-
-    /// <summary>
-    /// Check if user has reviewed a specific movie (returns the review if exists)
-    /// </summary>
-    [HttpGet("user/{userId}/movie/{tmdbMovieId}")]
-    public async Task<IActionResult> GetUserMovieReview(int userId, int tmdbMovieId)
-    {
-        var request = new ReviewListRequestModel
-        {
-            UserId = userId,
-            TmdbMovieId = tmdbMovieId,
-            Page = 1,
-            PageSize = 10
-        };
-
-        var response = await _reviewService.GetReviewsAsync(request);
-
-        if (!response.IsSuccess)
-        {
-            return BadRequest(response);
-        }
-
-        return Ok(new
-        {
-            isSuccess = true,
-            data = response.Data?.Items ?? Array.Empty<ReviewResponseModel>()
-        });
     }
 
     /// <summary>
