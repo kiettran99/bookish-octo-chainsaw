@@ -49,13 +49,13 @@ else
                         <span class="badge chip chip--muted">@string.Join(" • ", featured.Genres.Take(3))</span>
                         <span class="text-secondary">@FormatRelease(featured.ReleaseDate)</span>
                         <span class="badge chip chip--info">@featured.CommunityScore.ToString("0.0")</span>
-                        @if (featured.RequiresTicketVerification)
+                        @if (featured.IsNowPlaying)
                         {
-                            <span class="badge chip chip--danger fw-semibold">Cần xác thực vé</span>
+                            <span class="badge chip chip--success fw-semibold">Đang công chiếu</span>
                         }
                         else
                         {
-                            <span class="badge chip chip--success fw-semibold">Tự do review</span>
+                            <span class="badge chip chip--muted fw-semibold">Sắp khởi chiếu</span>
                         }
                     </div>
                     <p class="home-hero__overview text-secondary-emphasis mb-4 text-center">@featured.Overview</p>
@@ -83,14 +83,14 @@ else
                                 <span class="home-hero__meta-value">@featured.CommunityScore.ToString("0.0")</span>
                             </div>
                             <div class="home-hero__meta-item">
-                                <span class="home-hero__meta-label">Trạng thái review:</span>
-                                @if (featured.RequiresTicketVerification)
+                                <span class="home-hero__meta-label">Tình trạng:</span>
+                                @if (featured.IsNowPlaying)
                                 {
-                                    <span class="badge chip chip--danger fw-semibold">Cần xác thực vé</span>
+                                    <span class="badge chip chip--success fw-semibold">Đang công chiếu</span>
                                 }
                                 else
                                 {
-                                    <span class="badge chip chip--success fw-semibold">Tự do review</span>
+                                    <span class="badge chip chip--muted fw-semibold">Sắp khởi chiếu</span>
                                 }
                             </div>
                         </div>
@@ -115,7 +115,7 @@ else
                 <div class="section-header">
                     <div>
                         <h2 class="h3 text-white mb-1">Đang chiếu nổi bật</h2>
-                        <p class="text-secondary mb-0">Các suất chiếu đang mở bán, hãy xác thực vé để bật review.</p>
+                        <p class="text-secondary mb-0">Các suất chiếu đang mở bán tại Việt Nam, cập nhật theo lịch phát hành mới nhất.</p>
                     </div>
                     <a class="btn btn-ghost btn-sm" href="@Url.Action("NowPlaying", "Movies")">Xem tất cả</a>
                 </div>
@@ -196,10 +196,6 @@ else
                                         </div>
                                         <p class="text-secondary mb-2">@review.Excerpt</p>
                                         <div class="d-flex align-items-center gap-2 small">
-                                            @if (review.IsTicketVerified)
-                                            {
-                                                <span class="badge chip chip--success">Đã xác thực vé</span>
-                                            }
                                             @if (!string.IsNullOrWhiteSpace(review.Location))
                                             {
                                                 <span class="text-secondary">@review.Location</span>
@@ -219,7 +215,7 @@ else
                 <div class="section-header">
                     <div>
                         <h2 class="h3 text-white mb-1">Bài viết & hướng dẫn</h2>
-                        <p class="text-secondary mb-0">Tin tức, kinh nghiệm xác thực vé và mẹo review chất lượng.</p>
+                        <p class="text-secondary mb-0">Tin tức, kinh nghiệm săn vé sớm và mẹo review chất lượng.</p>
                     </div>
                     <a class="btn btn-ghost btn-sm" href="#">Xem thêm bài viết</a>
                 </div>

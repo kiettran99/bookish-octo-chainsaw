@@ -277,6 +277,7 @@
             .replace(/\/page-\d+$/i, "");
         const reviewBaseUrl = reviewsRoot ? (reviewsRoot.dataset.reviewBaseUrl || "").replace(/\/+$/, "") : fallbackBasePath.replace(/\/+$/, "");
         let currentReviewPage = reviewsRoot ? parseInt(reviewsRoot.dataset.reviewInitialPage || "1", 10) || 1 : 1;
+        const isReleasedInVN = reviewsRoot ? (reviewsRoot.dataset.isReleased === "true") : true;
         let userReviewState = { tag: false, freeform: false, count: 0 };
         let userReviewDetails = { tag: null, freeform: null };
         const reviewRatingState = new Map();
@@ -1297,6 +1298,19 @@
 
                 if (items.length === 0) {
                     toggleElement(reviewsContainer, false);
+
+                    // Update empty state message based on release status
+                    if (reviewsEmptyState) {
+                        const emptyMessage = reviewsEmptyState.querySelector("p");
+                        if (emptyMessage) {
+                            if (isReleasedInVN) {
+                                emptyMessage.textContent = "Chưa có review nào cho phim này.";
+                            } else {
+                                emptyMessage.textContent = "Vui lòng đợi phim công chiếu để đánh giá và xem reviews từ cộng đồng.";
+                            }
+                        }
+                    }
+
                     toggleElement(reviewsEmptyState, true);
                 } else {
                     renderReviews(items);
@@ -1315,6 +1329,19 @@
                 console.error("Lỗi khi tải reviews:", error);
                 toggleElement(reviewsSkeleton, false);
                 toggleElement(reviewsContainer, false);
+
+                // Update empty state message based on release status
+                if (reviewsEmptyState) {
+                    const emptyMessage = reviewsEmptyState.querySelector("p");
+                    if (emptyMessage) {
+                        if (isReleasedInVN) {
+                            emptyMessage.textContent = "Chưa có review nào cho phim này.";
+                        } else {
+                            emptyMessage.textContent = "Vui lòng đợi phim công chiếu để đánh giá và xem reviews từ cộng đồng.";
+                        }
+                    }
+                }
+
                 toggleElement(reviewsEmptyState, true);
                 if (paginationContainer) {
                     paginationContainer.classList.add("d-none");
@@ -1751,7 +1778,11 @@
         }
 
         loadActiveTags();
-        loadMovieReviews(currentReviewPage);
+
+        // Only load reviews if the reviews container exists (movie is now playing)
+        if (reviewsContainer) {
+            loadMovieReviews(currentReviewPage);
+        }
 
         // Expose API
         window.CineReviewSheet = {

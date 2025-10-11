@@ -33,15 +33,24 @@ else
     var hasPoster = !string.IsNullOrWhiteSpace(summary?.PosterUrl);
     var hasBackdrop = !string.IsNullOrWhiteSpace(summary?.BackdropUrl);
     var posterUrl = hasPoster ? summary!.PosterUrl : "/images/no-poster.png";
-    var certification = string.IsNullOrWhiteSpace(profile.Certification) ? "Đang cập nhật" : profile.Certification;
+    var certification = MapCertificationToVietnamese(profile.Certification);
     var runtimeLabel = profile.RuntimeMinutes > 0 ? $"{profile.RuntimeMinutes} phút" : "Đang cập nhật";
-    var statusLabel = string.IsNullOrWhiteSpace(profile.Status) ? "Đang cập nhật" : profile.Status;
+    
+    // Ưu tiên logic hiển thị cho region VN
+    // Check theo ngày phát hành VN so với UTC+7
+    var vnNow = DateTime.UtcNow.AddHours(7); // UTC+7 for Vietnam
+    var releaseDate = summary?.ReleaseDate ?? DateTime.MaxValue;
+    var isReleasedInVN = releaseDate <= vnNow;
+    var isNowPlaying = summary?.IsNowPlaying ?? false;
+    string statusLabel = isNowPlaying ? "Đang chiếu" : "Sắp chiếu";
+    
     var genresDisplay = summary?.Genres?.Any() == true ? string.Join(" / ", summary.Genres) : "Đang cập nhật";
     var releaseDateShort = summary?.ReleaseDate.ToString("dd MMM yyyy") ?? "Đang cập nhật";
     var releaseDateLong = summary?.ReleaseDate.ToString("dd/MM/yyyy") ?? "Đang cập nhật";
+    var originalReleaseDate = summary?.OriginalReleaseDate;
+    var shouldShowOriginalRelease = summary is not null && originalReleaseDate.HasValue && originalReleaseDate.Value.Date < summary.ReleaseDate.Date;
+    var originalReleaseLong = shouldShowOriginalRelease ? originalReleaseDate!.Value.ToString("dd/MM/yyyy") : null;
     var communityScore = summary is not null && summary.CommunityScore > 0 ? summary.CommunityScore.ToString("0.0") : "Chưa có";
-    var reviewPolicyLabel = summary?.RequiresTicketVerification == true ? "Cần xác thực vé" : "Tự do review";
-    var reviewPolicyChipClass = summary?.RequiresTicketVerification == true ? "chip chip--danger" : "chip chip--success";
     var tagline = summary is not null && !string.IsNullOrWhiteSpace(summary.Tagline) ? summary.Tagline : null;
     var overview = summary?.Overview ?? string.Empty;
 
@@ -88,7 +97,7 @@ else
                             <p class="text-secondary mb-3">@overview</p>
                         }
                         <div class="detail-hero__actions d-flex flex-column gap-2 mb-4">
-                            <a class="btn btn-primary btn-glow w-100" href="#tickets">Mua vé ngay</a>
+                            <a class="btn btn-primary btn-glow w-100" href="#watch-options">Mua vé ngay</a>
                         </div>
                         <div class="detail-hero__mobile-meta">
                             <div class="detail-hero__meta-chip">
@@ -100,14 +109,12 @@ else
                                 <span class="value">@runtimeLabel</span>
                             </div>
                             <div class="detail-hero__meta-chip">
-                                <span class="label">Trạng thái</span>
+                                <span class="label">Tình trạng</span>
                                 <span class="value">@statusLabel</span>
                             </div>
                             <div class="detail-hero__meta-chip">
-                                <span class="label">Review</span>
-                                <span class="value">
-                                    <span class="@reviewPolicyChipClass">@reviewPolicyLabel</span>
-                                </span>
+                                <span class="label">Phát hành VN</span>
+                                <span class="value">@releaseDateLong</span>
                             </div>
                         </div>
                     </div>
@@ -144,7 +151,7 @@ else
                             <p class="text-secondary mb-4">@overview</p>
                         }
                         <div class="detail-hero__actions d-flex flex-wrap gap-3 mb-4">
-                            <a class="btn btn-primary btn-glow" href="#tickets">Mua vé ngay</a>
+                            <a class="btn btn-primary btn-glow" href="#watch-options">Mua vé ngay</a>
                         </div>
                         <div class="detail-hero__meta">
                             <div>
@@ -156,12 +163,12 @@ else
                                 <span class="fw-semibold text-white">@runtimeLabel</span>
                             </div>
                             <div>
-                                <span class="text-secondary">Trạng thái</span>
+                                <span class="text-secondary">Tình trạng</span>
                                 <span class="fw-semibold text-white">@statusLabel</span>
                             </div>
                             <div>
-                                <span class="text-secondary">Chính sách review</span>
-                                <span class="@reviewPolicyChipClass">@reviewPolicyLabel</span>
+                                <span class="text-secondary">Phát hành</span>
+                                <span class="fw-semibold text-white">@releaseDateLong</span>
                             </div>
                         </div>
                     </div>
@@ -169,7 +176,11 @@ else
                         <h2 class="h6 text-secondary text-uppercase">Thông tin nhanh</h2>
                         <ul class="list-unstyled mb-0">
                             <li><span>Thể loại</span><span>@genresDisplay</span></li>
-                            <li><span>Ngày phát hành</span><span>@releaseDateLong</span></li>
+                            <li><span>Ngày phát hành (VN)</span><span>@releaseDateLong</span></li>
+                            @if (!string.IsNullOrEmpty(originalReleaseLong))
+                            {
+                                <li><span>Ngày phát hành quốc tế</span><span>@originalReleaseLong</span></li>
+                            }
                             <li><span>Thời lượng</span><span>@runtimeLabel</span></li>
                             <li><span>Chứng nhận</span><span>@certification</span></li>
                         </ul>
@@ -180,7 +191,11 @@ else
                     <h2 class="h6 text-secondary text-uppercase">Thông tin nhanh</h2>
                     <ul class="list-unstyled mb-0">
                         <li><span>Thể loại</span><span>@genresDisplay</span></li>
-                        <li><span>Ngày phát hành</span><span>@releaseDateLong</span></li>
+                        <li><span>Ngày phát hành (VN)</span><span>@releaseDateLong</span></li>
+                        @if (!string.IsNullOrEmpty(originalReleaseLong))
+                        {
+                            <li><span>Ngày phát hành quốc tế</span><span>@originalReleaseLong</span></li>
+                        }
                         <li><span>Thời lượng</span><span>@runtimeLabel</span></li>
                         <li><span>Chứng nhận</span><span>@certification</span></li>
                     </ul>
@@ -206,14 +221,9 @@ else
                         {
                             <p class="text-secondary mb-4">Thông tin điểm nhấn đang cập nhật. Hãy quay lại sau để xem thêm.</p>
                         }
-
-                        <div class="ticket-policy" id="tickets">
-                            <h3 class="h5 text-white mb-2">Chính sách vé &amp; review</h3>
-                            <p class="text-secondary mb-0">@profile.TicketPolicyNote</p>
-                        </div>
                     </div>
                     <div class="col-lg-4">
-                        <div class="watch-options">
+                        <div class="watch-options" id="watch-options">
                             <h2 class="h5 text-white mb-3">Các định dạng đang mở bán</h2>
                             @if (profile.WatchOptions.Any())
                             {
@@ -307,74 +317,77 @@ else
         }
 
         <section class="detail-section" id="reviews">
-            <div class="container-xl" data-movie-id="@(summary?.Id ?? 0)" data-review-base-url="@ViewBag.ReviewBasePath" data-review-initial-page="@((int)(ViewBag.ReviewPage ?? 1))">
+            <div class="container-xl" data-movie-id="@(summary?.Id ?? 0)" data-review-base-url="@ViewBag.ReviewBasePath" data-review-initial-page="@((int)(ViewBag.ReviewPage ?? 1))" data-is-released="@isReleasedInVN.ToString().ToLower()">
                 <div class="section-header">
                     <h2 id="community-reviews" class="h3 text-white mb-0">Review từ cộng đồng</h2>
-                    <div class="section-header__actions">
-                        <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-2" data-write-review>
-                            <i class="bi bi-pencil-square"></i>
-                            <span>Viết review</span>
-                        </button>
-                    </div>
+                    @if (isReleasedInVN)
+                    {
+                        <div class="section-header__actions">
+                            <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-2" data-write-review>
+                                <i class="bi bi-pencil-square"></i>
+                                <span>Viết review</span>
+                            </button>
+                        </div>
+                    }
                 </div>
                 <div class="row g-4" data-reviews-container>
                     <!-- Reviews will be loaded dynamically -->
                 </div>
                 <div class="row g-4" data-reviews-skeleton>
-                    <!-- Skeleton loading state -->
-                    <div class="col-12">
-                        <div class="review-card skeleton-loading">
-                            <div class="review-card__header">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="skeleton shimmer skeleton-avatar"></div>
-                                    <div class="flex-grow-1">
-                                        <div class="skeleton shimmer skeleton-text skeleton-text--short mb-2"></div>
-                                        <div class="skeleton shimmer skeleton-text skeleton-text--xs"></div>
+                        <!-- Skeleton loading state -->
+                        <div class="col-12">
+                            <div class="review-card skeleton-loading">
+                                <div class="review-card__header">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="skeleton shimmer skeleton-avatar"></div>
+                                        <div class="flex-grow-1">
+                                            <div class="skeleton shimmer skeleton-text skeleton-text--short mb-2"></div>
+                                            <div class="skeleton shimmer skeleton-text skeleton-text--xs"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="review-card__body">
-                                <div class="skeleton shimmer skeleton-text mb-2"></div>
-                                <div class="skeleton shimmer skeleton-text mb-2"></div>
-                                <div class="skeleton shimmer skeleton-text skeleton-text--medium"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="review-card skeleton-loading">
-                            <div class="review-card__header">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="skeleton shimmer skeleton-avatar"></div>
-                                    <div class="flex-grow-1">
-                                        <div class="skeleton shimmer skeleton-text skeleton-text--short mb-2"></div>
-                                        <div class="skeleton shimmer skeleton-text skeleton-text--xs"></div>
-                                    </div>
+                                <div class="review-card__body">
+                                    <div class="skeleton shimmer skeleton-text mb-2"></div>
+                                    <div class="skeleton shimmer skeleton-text mb-2"></div>
+                                    <div class="skeleton shimmer skeleton-text skeleton-text--medium"></div>
                                 </div>
                             </div>
-                            <div class="review-card__body">
-                                <div class="skeleton shimmer skeleton-text mb-2"></div>
-                                <div class="skeleton shimmer skeleton-text mb-2"></div>
-                                <div class="skeleton shimmer skeleton-text skeleton-text--medium"></div>
-                            </div>
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="review-card skeleton-loading">
-                            <div class="review-card__header">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="skeleton shimmer skeleton-avatar"></div>
-                                    <div class="flex-grow-1">
-                                        <div class="skeleton shimmer skeleton-text skeleton-text--short mb-2"></div>
-                                        <div class="skeleton shimmer skeleton-text skeleton-text--xs"></div>
+                        <div class="col-12">
+                            <div class="review-card skeleton-loading">
+                                <div class="review-card__header">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="skeleton shimmer skeleton-avatar"></div>
+                                        <div class="flex-grow-1">
+                                            <div class="skeleton shimmer skeleton-text skeleton-text--short mb-2"></div>
+                                            <div class="skeleton shimmer skeleton-text skeleton-text--xs"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="review-card__body">
-                                <div class="skeleton shimmer skeleton-text mb-2"></div>
-                                <div class="skeleton shimmer skeleton-text mb-2"></div>
-                                <div class="skeleton shimmer skeleton-text skeleton-text--medium"></div>
+                                <div class="review-card__body">
+                                    <div class="skeleton shimmer skeleton-text mb-2"></div>
+                                    <div class="skeleton shimmer skeleton-text mb-2"></div>
+                                    <div class="skeleton shimmer skeleton-text skeleton-text--medium"></div>
+                                </div>
                             </div>
                         </div>
+                        <div class="col-12">
+                            <div class="review-card skeleton-loading">
+                                <div class="review-card__header">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="skeleton shimmer skeleton-avatar"></div>
+                                        <div class="flex-grow-1">
+                                            <div class="skeleton shimmer skeleton-text skeleton-text--short mb-2"></div>
+                                            <div class="skeleton shimmer skeleton-text skeleton-text--xs"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="review-card__body">
+                                    <div class="skeleton shimmer skeleton-text mb-2"></div>
+                                    <div class="skeleton shimmer skeleton-text mb-2"></div>
+                                    <div class="skeleton shimmer skeleton-text skeleton-text--medium"></div>
+                                </div>
+                            </div>
                     </div>
                 </div>
                 <nav class="review-pagination mt-4" data-review-pagination aria-label="Điều hướng review"></nav>
@@ -384,8 +397,7 @@ else
                     @* <button type="button" class="btn btn-primary" data-write-review>Viết review đầu tiên</button> *@
                 </div>
             </div>
-        </section>
-
+        </section>        
         <section class="detail-section" id="recommendations">
             <div class="container-xl">
                 <div class="section-header">
@@ -434,6 +446,26 @@ else
     };
 
     private static string FormatSupportScore(int score) => score > 0 ? $"+{score}" : score.ToString();
+
+    private static string MapCertificationToVietnamese(string certification)
+    {
+        if (string.IsNullOrWhiteSpace(certification) || certification == "Đang cập nhật")
+        {
+            return "Đang cập nhật";
+        }
+
+        return certification.ToUpperInvariant() switch
+        {
+            "G" => "P - Phổ biến (mọi lứa tuổi)",
+            "PG" => "K - Dành cho trẻ em dưới 13 tuổi và có cha mẹ đi cùng",
+            "PG-13" => "T13 - Cấm khán giả dưới 13 tuổi",
+            "R" => "T16 - Cấm khán giả dưới 16 tuổi",
+            "NC-17" or "NC17" => "T18 - Cấm khán giả dưới 18 tuổi",
+            "NR" or "NOT RATED" => "Chưa phân loại",
+            "PENDING" => "Đang cập nhật",
+            _ => certification
+        };
+    }
 }
 
 @section Scripts {

@@ -10,11 +10,11 @@ public sealed record MovieSummary(
     string PosterUrl,
     string BackdropUrl,
     DateTime ReleaseDate,
+    DateTime? OriginalReleaseDate,
     double CommunityScore,
     IReadOnlyList<string> Genres,
     string Overview,
-    bool IsNowPlaying,
-    bool RequiresTicketVerification
+    bool IsNowPlaying
 );
 
 public sealed record ReviewSnapshot(
@@ -64,7 +64,6 @@ public sealed record MovieProfile(
     int RuntimeMinutes,
     string Status,
     string Certification,
-    string TicketPolicyNote,
     IReadOnlyList<string> Highlights,
     IReadOnlyList<string> WatchOptions,
     IReadOnlyList<CastMember> TopCast,

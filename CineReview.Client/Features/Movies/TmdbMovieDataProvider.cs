@@ -146,7 +146,6 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         var certification = ExtractCertification(detail) ?? "Đang cập nhật";
         var highlights = BuildHighlights(detail, summary, certification);
         var watchOptions = BuildWatchOptions(detail, summary);
-        var ticketPolicy = BuildTicketPolicy(summary);
         var cast = BuildTopCast(detail);
 
         var videos = BuildVideos(detail);
@@ -167,7 +166,6 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             RuntimeMinutes: runtime,
             Status: status,
             Certification: certification,
-            TicketPolicyNote: ticketPolicy,
             Highlights: highlights,
             WatchOptions: watchOptions,
             TopCast: cast,
@@ -182,7 +180,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             page,
             isNowPlaying: true,
             title: "Đang chiếu nổi bật",
-            description: "Các suất chiếu đang mở bán, hãy xác thực vé để bật review.",
+            description: "Các suất chiếu đang mở bán tại Việt Nam, cập nhật liên tục theo lịch công chiếu.",
             cancellationToken);
 
     public ValueTask<PaginatedMovies> GetComingSoonAsync(int page, CancellationToken cancellationToken = default)
@@ -191,7 +189,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             page,
             isNowPlaying: false,
             title: "Sắp công chiếu",
-            description: "Đặt lịch phát sóng để không bỏ lỡ vé early-access.",
+            description: "Đặt nhắc lịch để không bỏ lỡ suất chiếu đầu tiên tại Việt Nam.",
             cancellationToken);
 
     public async ValueTask<MovieSearchResult> SearchMoviesAsync(MovieSearchRequest request, CancellationToken cancellationToken = default)
@@ -382,8 +380,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             {
                 summary = summary with
                 {
-                    IsNowPlaying = isNowPlaying.Value,
-                    RequiresTicketVerification = DetermineTicketVerification(summary.ReleaseDate, summary.IsNowPlaying)
+                    IsNowPlaying = isNowPlaying.Value
                 };
             }
 
@@ -515,7 +512,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
 
     private MovieSummary MapToSummary(TmdbMovieDetail detail, IDictionary<int, string> genreLookup, bool? inferIsNowPlaying)
     {
-        var releaseDate = ParseDate(detail.ReleaseDate) ?? DateTime.UtcNow;
+        var (releaseDate, originalReleaseDate) = ResolveReleaseDates(detail);
         var genres = detail.Genres?.Select(g => g.Name).Where(name => !string.IsNullOrWhiteSpace(name)).ToArray()
                      ?? detail.GenreIds?.Select(id => genreLookup.TryGetValue(id, out var name) ? name : null)
                          .Where(name => !string.IsNullOrWhiteSpace(name))
@@ -524,7 +521,6 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
                      ?? Array.Empty<string>();
 
         var isNowPlaying = inferIsNowPlaying ?? DetermineNowPlayingStatus(releaseDate, detail.Status);
-        var requiresTicket = DetermineTicketVerification(releaseDate, isNowPlaying);
 
         var resolvedTitle = ResolveTitle(detail);
         var resolvedTagline = ResolveTagline(detail);
@@ -537,11 +533,11 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             PosterUrl: ResolveImageUrl(detail.PosterPath, _options.PosterSize),
             BackdropUrl: ResolveImageUrl(detail.BackdropPath, _options.BackdropSize),
             ReleaseDate: releaseDate,
+            OriginalReleaseDate: originalReleaseDate,
             CommunityScore: detail.VoteAverage,
             Genres: genres,
             Overview: resolvedOverview,
-            IsNowPlaying: isNowPlaying,
-            RequiresTicketVerification: requiresTicket
+            IsNowPlaying: isNowPlaying
         );
     }
 
@@ -554,7 +550,6 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             .ToArray() ?? Array.Empty<string>();
 
         var inferedNowPlaying = isNowPlaying ?? DetermineNowPlayingStatus(releaseDate, null);
-        var requiresTicket = DetermineTicketVerification(releaseDate, inferedNowPlaying);
 
         var overview = string.IsNullOrWhiteSpace(item.Overview) ? DefaultOverviewFallback : item.Overview!;
 
@@ -565,11 +560,11 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             PosterUrl: ResolveImageUrl(item.PosterPath, _options.PosterSize),
             BackdropUrl: ResolveImageUrl(item.BackdropPath, _options.BackdropSize),
             ReleaseDate: releaseDate,
+            OriginalReleaseDate: releaseDate,
             CommunityScore: item.VoteAverage,
             Genres: genres,
             Overview: overview,
-            IsNowPlaying: inferedNowPlaying,
-            RequiresTicketVerification: requiresTicket
+            IsNowPlaying: inferedNowPlaying
         );
     }
 
@@ -723,6 +718,65 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         return null;
     }
 
+    private static (DateTime ReleaseDate, DateTime? OriginalReleaseDate) ResolveReleaseDates(TmdbMovieDetail detail)
+    {
+        var original = ParseDate(detail.ReleaseDate);
+        var vietnam = ResolveRegionalReleaseDate(detail, "VN");
+
+        if (vietnam.HasValue)
+        {
+            return (vietnam.Value, original);
+        }
+
+        return (original ?? DateTime.UtcNow, original);
+    }
+
+    private static DateTime? ResolveRegionalReleaseDate(TmdbMovieDetail detail, string regionCode)
+    {
+        if (string.IsNullOrWhiteSpace(regionCode))
+        {
+            return null;
+        }
+
+        var results = detail.ReleaseDates?.Results;
+        if (results is null || results.Count == 0)
+        {
+            return null;
+        }
+
+        var match = results.FirstOrDefault(r => string.Equals(r.Region, regionCode, StringComparison.OrdinalIgnoreCase));
+        if (match?.ReleaseDates is null || match.ReleaseDates.Count == 0)
+        {
+            return null;
+        }
+
+        static int ScoreReleaseType(int type) => type switch
+        {
+            3 => 0, // Theatrical
+            2 => 1, // Theatrical (limited)
+            4 => 2, // Digital
+            5 => 3, // Physical
+            1 => 4, // Premiere
+            _ => 5
+        };
+
+        static DateTime ToUtc(DateTime value) => value.Kind switch
+        {
+            DateTimeKind.Unspecified => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => value
+        };
+
+        var candidate = match.ReleaseDates
+            .Where(info => info.ReleaseDate.HasValue)
+            .OrderBy(info => ScoreReleaseType(info.Type))
+            .ThenBy(info => info.ReleaseDate!.Value)
+            .Select(info => ToUtc(info.ReleaseDate!.Value))
+            .FirstOrDefault();
+
+        return candidate == default ? null : candidate;
+    }
+
     private static bool DetermineNowPlayingStatus(DateTime releaseDateUtc, string? status)
     {
         if (string.Equals(status, "Released", StringComparison.OrdinalIgnoreCase))
@@ -736,31 +790,6 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
         }
 
         return false;
-    }
-
-    private static bool DetermineTicketVerification(DateTime releaseDateUtc, bool isNowPlaying)
-    {
-        if (releaseDateUtc > DateTime.UtcNow)
-        {
-            return true;
-        }
-
-        return isNowPlaying;
-    }
-
-    private static string BuildTicketPolicy(MovieSummary summary)
-    {
-        if (summary.ReleaseDate > DateTime.UtcNow)
-        {
-            return $"Phim dự kiến khởi chiếu ngày {summary.ReleaseDate:dd/MM/yyyy} - mở đăng ký nhắc lịch và xác thực vé sau suất chiếu.";
-        }
-
-        if (summary.IsNowPlaying)
-        {
-            return "Phim đang chiếu - yêu cầu xác thực vé hợp lệ trước khi đăng review.";
-        }
-
-        return "Phim đã phát hành - bạn có thể viết review ngay mà không cần xác thực vé.";
     }
 
     private static IReadOnlyList<string> BuildHighlights(TmdbMovieDetail detail, MovieSummary summary, string certification)
@@ -807,7 +836,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
             {
                 "Đặt vé trực tuyến tại các cụm rạp đối tác",
                 "Suất chiếu phụ đề và lồng tiếng (nếu có)",
-                "Xác thực vé điện tử ngay trong ứng dụng"
+                "Gợi ý trải nghiệm IMAX, 4DX và Dolby Atmos"
             };
         }
 
@@ -1093,11 +1122,11 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
                 BadgeLabel: BuildBadge(),
                 Excerpt: "Cốt truyện được xử lý mạch lạc, hình ảnh rất ấn tượng so với kỳ vọng ban đầu.",
                 Rating: 8,
-                FairVotes: summary.RequiresTicketVerification ? 122 : 96,
+                FairVotes: summary.IsNowPlaying ? 122 : 96,
                 UnfairVotes: 5,
-                SupportScore: (summary.RequiresTicketVerification ? 122 : 96) - 5,
+                SupportScore: (summary.IsNowPlaying ? 122 : 96) - 5,
                 CreatedAt: DateTime.UtcNow.AddDays(-2),
-                IsTicketVerified: summary.RequiresTicketVerification,
+                IsTicketVerified: false,
                 ContextLabel: summary.Title,
                 Location: "HCMC, VN"),
             new ReviewSnapshot(
@@ -1108,9 +1137,9 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
                 BadgeLabel: BuildBadge(),
                 Excerpt: "Đáng để đặt vé suất đầu tiên, đặc biệt nếu bạn yêu thích thể loại này.",
                 Rating: 9,
-                FairVotes: summary.RequiresTicketVerification ? 101 : 82,
+                FairVotes: summary.IsNowPlaying ? 101 : 82,
                 UnfairVotes: 9,
-                SupportScore: (summary.RequiresTicketVerification ? 101 : 82) - 9,
+                SupportScore: (summary.IsNowPlaying ? 101 : 82) - 9,
                 CreatedAt: DateTime.UtcNow.AddDays(-5),
                 IsTicketVerified: false,
                 ContextLabel: releaseLabel,
@@ -1482,14 +1511,14 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
                 Author: "Gia Hân",
                 Username: BuildUsername("Gia Hân"),
                 AvatarUrl: "https://i.pravatar.cc/96?img=52",
-                BadgeLabel: featured.RequiresTicketVerification ? "Fan suất đầu" : "Thành viên cộng đồng",
+                BadgeLabel: featured.IsNowPlaying ? "Fan suất đầu" : "Thành viên cộng đồng",
                 Excerpt: $"{featured.Title} mang đến trải nghiệm điện ảnh rất đáng chờ đợi.",
                 Rating: 9,
-                FairVotes: featured.RequiresTicketVerification ? 148 : 112,
+                FairVotes: featured.IsNowPlaying ? 148 : 112,
                 UnfairVotes: 7,
-                SupportScore: (featured.RequiresTicketVerification ? 148 : 112) - 7,
+                SupportScore: (featured.IsNowPlaying ? 148 : 112) - 7,
                 CreatedAt: DateTime.UtcNow.AddDays(-1),
-                IsTicketVerified: featured.RequiresTicketVerification,
+                IsTicketVerified: false,
                 ContextLabel: featured.Title,
                 Location: "Sai Gon"),
             new ReviewSnapshot(
@@ -1504,7 +1533,7 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
                 UnfairVotes: 11,
                 SupportScore: 106 - 11,
                 CreatedAt: DateTime.UtcNow.AddDays(-3),
-                IsTicketVerified: featured.RequiresTicketVerification,
+                IsTicketVerified: false,
                 ContextLabel: featured.Title,
                 Location: "Da Nang"),
             new ReviewSnapshot(
@@ -1527,15 +1556,15 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
                 Author: "Quang Huy",
                 Username: BuildUsername("Quang Huy"),
                 AvatarUrl: "https://i.pravatar.cc/96?img=60",
-                BadgeLabel: "Ticket Verified",
-                Excerpt: "Xác thực vé cực nhanh, mình đã đăng review chỉ sau 5 phút.",
+                BadgeLabel: "Khán giả nhiệt thành",
+                Excerpt: "Khung cảnh hoành tráng khiến mình muốn đặt thêm suất IMAX ngay lập tức.",
                 Rating: 10,
                 FairVotes: 132,
                 UnfairVotes: 4,
                 SupportScore: 132 - 4,
                 CreatedAt: DateTime.UtcNow.AddDays(-8),
-                IsTicketVerified: true,
-                ContextLabel: "Ticket Verified",
+                IsTicketVerified: false,
+                ContextLabel: featured.Title,
                 Location: "Can Tho")
         };
     }
@@ -1551,8 +1580,8 @@ public sealed class TmdbMovieDataProvider : IMovieDataProvider
                 ActionLabel: "Đọc bài viết",
                 ActionUrl: "#"),
             new EditorialSpotlight(
-                Title: "Tips xác thực vé điện tử nhanh",
-                Description: "Hướng dẫn cập nhật vé từ các cụm rạp phổ biến tại Việt Nam.",
+                Title: "Kinh nghiệm săn vé suất sớm",
+                Description: "Chia sẻ mẹo đặt vé và chọn ghế đẹp cho các suất chiếu hot tại Việt Nam.",
                 ImageUrl: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80",
                 ActionLabel: "Xem ngay",
                 ActionUrl: "#")

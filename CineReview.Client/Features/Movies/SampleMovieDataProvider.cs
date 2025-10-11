@@ -70,7 +70,7 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
             _homeSnapshot.NowPlaying,
             page,
             "Đang chiếu nổi bật",
-            "Các suất chiếu đang mở bán, hãy xác thực vé để bật review."));
+            "Các suất chiếu đang mở bán tại Việt Nam, cập nhật theo lịch phát hành mới nhất."));
 
     public ValueTask<PaginatedMovies> GetComingSoonAsync(int page, CancellationToken cancellationToken = default)
         => ValueTask.FromResult(BuildPagedResult(
@@ -158,11 +158,11 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
             PosterUrl: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=500&q=80",
             BackdropUrl: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=1600&q=80",
             ReleaseDate: new DateTime(2024, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+            OriginalReleaseDate: new DateTime(2024, 2, 28, 0, 0, 0, DateTimeKind.Utc),
             CommunityScore: 8.7,
             Genres: new[] { "Science Fiction", "Adventure", "Drama" },
             Overview: "Paul Atreides hợp lực cùng người Fremen để khai phá sức mạnh tương lai và trả thù những kẻ đã phá hủy gia tộc Atreides.",
-            IsNowPlaying: true,
-            RequiresTicketVerification: true
+            IsNowPlaying: true
         );
 
         var insideOut = new MovieSummary(
@@ -172,11 +172,11 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
             PosterUrl: "https://images.unsplash.com/photo-1523731407965-2430cd12f5e4?auto=format&fit=crop&w=500&q=80",
             BackdropUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=80",
             ReleaseDate: new DateTime(2024, 6, 11, 0, 0, 0, DateTimeKind.Utc),
+            OriginalReleaseDate: new DateTime(2024, 6, 14, 0, 0, 0, DateTimeKind.Utc),
             CommunityScore: 8.3,
             Genres: new[] { "Animation", "Family", "Comedy" },
             Overview: "Riley bước vào tuổi teen với những cảm xúc mới mẻ xuất hiện, khiến trụ sở cảm xúc hỗn loạn hơn bao giờ hết.",
-            IsNowPlaying: true,
-            RequiresTicketVerification: true
+            IsNowPlaying: true
         );
 
         var oppenheimer = new MovieSummary(
@@ -186,11 +186,11 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
             PosterUrl: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?auto=format&fit=crop&w=500&q=80",
             BackdropUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
             ReleaseDate: new DateTime(2023, 7, 19, 0, 0, 0, DateTimeKind.Utc),
+            OriginalReleaseDate: new DateTime(2023, 7, 21, 0, 0, 0, DateTimeKind.Utc),
             CommunityScore: 8.4,
             Genres: new[] { "Drama", "History" },
             Overview: "Christopher Nolan kể lại câu chuyện nhà khoa học J. Robert Oppenheimer và cuộc chạy đua vũ khí hạt nhân thời Thế chiến II.",
-            IsNowPlaying: false,
-            RequiresTicketVerification: false
+            IsNowPlaying: false
         );
 
         var gladiator = new MovieSummary(
@@ -200,11 +200,11 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
             PosterUrl: "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=500&q=80",
             BackdropUrl: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=80",
             ReleaseDate: new DateTime(2024, 11, 14, 0, 0, 0, DateTimeKind.Utc),
+            OriginalReleaseDate: new DateTime(2024, 11, 8, 0, 0, 0, DateTimeKind.Utc),
             CommunityScore: 0,
             Genres: new[] { "Action", "Drama" },
             Overview: "Lucius trở lại đấu trường La Mã, đối mặt những âm mưu chính trị và kẻ thù mới để tìm lại danh dự.",
-            IsNowPlaying: false,
-            RequiresTicketVerification: true
+            IsNowPlaying: false
         );
 
         var wicked = new MovieSummary(
@@ -214,11 +214,11 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
             PosterUrl: "https://images.unsplash.com/photo-1526243741027-444d633d7365?auto=format&fit=crop&w=500&q=80",
             BackdropUrl: "https://images.unsplash.com/photo-1463107971871-fbac9ddb920f?auto=format&fit=crop&w=1600&q=80",
             ReleaseDate: new DateTime(2024, 11, 27, 0, 0, 0, DateTimeKind.Utc),
+            OriginalReleaseDate: new DateTime(2024, 11, 22, 0, 0, 0, DateTimeKind.Utc),
             CommunityScore: 0,
             Genres: new[] { "Fantasy", "Romance", "Musical" },
             Overview: "Tiền truyện của Wizard of Oz, khám phá tình bạn giữa Elphaba và Glinda trước khi định mệnh chia cách.",
-            IsNowPlaying: false,
-            RequiresTicketVerification: true
+            IsNowPlaying: false
         );
 
         return new MovieProfile[]
@@ -228,7 +228,6 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 RuntimeMinutes: 167,
                 Status: "Released",
                 Certification: "PG-13",
-                TicketPolicyNote: "Phim đang chiếu - yêu cầu xác thực vé hợp lệ trước khi đăng review.",
                 Highlights: new[]
                 {
                     "Đại cảnh sa mạc Arrakis được quay với định dạng IMAX 65mm.",
@@ -283,7 +282,7 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                         FairVotes: 248,
                         UnfairVotes: 6,
                         CreatedAt: new DateTime(2024, 3, 2, 12, 0, 0, DateTimeKind.Utc),
-                        IsTicketVerified: true,
+                        IsTicketVerified: false,
                         ContextLabel: "Dune: Part Two",
                         Location: "Ho Chi Minh City, VN"),
                     new ReviewSnapshot(
@@ -298,7 +297,7 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                         FairVotes: 61,
                         UnfairVotes: 22,
                         CreatedAt: new DateTime(2024, 3, 5, 8, 30, 0, DateTimeKind.Utc),
-                        IsTicketVerified: true,
+                        IsTicketVerified: false,
                         ContextLabel: "Dune: Part Two",
                         Location: "Da Nang, VN")
                 },
@@ -309,7 +308,6 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 RuntimeMinutes: 100,
                 Status: "Released",
                 Certification: "PG",
-                TicketPolicyNote: "Phim đang chiếu - yêu cầu vé điện tử hoặc vé giấy còn hiệu lực.",
                 Highlights: new[]
                 {
                     "Những cảm xúc mới như Anxiety, Ennui mang lại góc nhìn hài hước.",
@@ -355,7 +353,7 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                         FairVotes: 184,
                         UnfairVotes: 9,
                         CreatedAt: new DateTime(2024, 6, 12, 14, 0, 0, DateTimeKind.Utc),
-                        IsTicketVerified: true,
+                        IsTicketVerified: false,
                         ContextLabel: "Inside Out 2",
                         Location: "Hanoi, VN"),
                     new ReviewSnapshot(
@@ -370,7 +368,7 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                         FairVotes: 102,
                         UnfairVotes: 11,
                         CreatedAt: new DateTime(2024, 6, 13, 19, 15, 0, DateTimeKind.Utc),
-                        IsTicketVerified: true,
+                        IsTicketVerified: false,
                         ContextLabel: "Inside Out 2",
                         Location: "Hue, VN")
                 },
@@ -381,7 +379,6 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 RuntimeMinutes: 180,
                 Status: "Released",
                 Certification: "R",
-                TicketPolicyNote: "Phim phát hành 2023 - không yêu cầu xác thực vé để review.",
                 Highlights: new[]
                 {
                     "Phim quay bằng IMAX 65mm, kết hợp thước phim đen trắng hiếm hoi.",
@@ -453,7 +450,6 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 RuntimeMinutes: 158,
                 Status: "Post Production",
                 Certification: "Pending",
-                TicketPolicyNote: "Phim sắp chiếu - mở đăng ký nhắc lịch, review sẽ yêu cầu vé sau khi công chiếu.",
                 Highlights: new[]
                 {
                     "Ridley Scott trở lại đấu trường Colosseum sau hơn 20 năm.",
@@ -482,7 +478,6 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 RuntimeMinutes: 165,
                 Status: "Post Production",
                 Certification: "Pending",
-                TicketPolicyNote: "Phim đang mở đặt vé trước, yêu cầu xác thực sau khi xem để đăng review.",
                 Highlights: new[]
                 {
                     "Jon M. Chu chuyển thể musical kinh điển với hai phần phim.",
@@ -548,8 +543,8 @@ public sealed class SampleMovieDataProvider : IMovieDataProvider
                 ActionUrl: "#"
             ),
             new EditorialSpotlight(
-                Title: "Hướng dẫn xác thực vé CGV",
-                Description: "Các bước nhập mã vé điện tử, xử lý lỗi thường gặp và mẹo giữ vé giấy để xác thực nhanh chóng.",
+                Title: "Kinh nghiệm săn vé suất sớm",
+                Description: "Mẹo đặt vé online, chọn chỗ đẹp và cập nhật lịch chiếu sớm tại các cụm rạp lớn.",
                 ImageUrl: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80",
                 ActionLabel: "Xem hướng dẫn",
                 ActionUrl: "#"
