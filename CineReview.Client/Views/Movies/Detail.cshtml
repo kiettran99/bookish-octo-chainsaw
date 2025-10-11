@@ -42,7 +42,24 @@ else
     var releaseDate = summary?.ReleaseDate ?? DateTime.MaxValue;
     var isReleasedInVN = releaseDate <= vnNow;
     var isNowPlaying = summary?.IsNowPlaying ?? false;
-    string statusLabel = isNowPlaying ? "Đang chiếu" : "Sắp chiếu";
+    
+    // Logic hiển thị status:
+    // 1. Đang chiếu: isNowPlaying && đã phát hành tại VN
+    // 2. Sắp chiếu: chưa phát hành tại VN (ngày công chiếu > now)
+    // 3. Đã phát hành: đã phát hành tại VN nhưng không còn đang chiếu
+    string statusLabel;
+    if (isNowPlaying && isReleasedInVN)
+    {
+        statusLabel = "Đang chiếu";
+    }
+    else if (!isReleasedInVN)
+    {
+        statusLabel = "Sắp chiếu";
+    }
+    else
+    {
+        statusLabel = "Đã phát hành";
+    }
     
     var genresDisplay = summary?.Genres?.Any() == true ? string.Join(" / ", summary.Genres) : "Đang cập nhật";
     var releaseDateShort = summary?.ReleaseDate.ToString("dd MMM yyyy") ?? "Đang cập nhật";
