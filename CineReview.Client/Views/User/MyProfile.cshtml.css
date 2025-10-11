@@ -313,8 +313,10 @@
 	position: relative;
 	aspect-ratio: 2 / 3;
 	width: 140px;
-	box-sizing: border-box; /* ensure padding included in width */
-	padding: 0.5rem; /* add internal spacing so poster doesn't touch edges */
+	box-sizing: border-box;
+	/* ensure padding included in width */
+	padding: 0.5rem;
+	/* add internal spacing so poster doesn't touch edges */
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -325,7 +327,8 @@
 	height: 100%;
 	object-fit: cover;
 	display: block;
-	border-radius: 8px; /* round the poster inside the padded container */
+	border-radius: 8px;
+	/* round the poster inside the padded container */
 }
 
 .profile-review-card__poster-fallback {
@@ -355,7 +358,8 @@
 
 /* Ensure badge on the right doesn't cover card content */
 .profile-review-card__body {
-	padding-right: 4.5rem; /* space for the absolute status badge */
+	padding-right: 4.5rem;
+	/* space for the absolute status badge */
 }
 
 .profile-review-card__header {
@@ -382,7 +386,8 @@
 .profile-review-card__status {
 	position: absolute;
 	top: 0.75rem;
-	right: 0.75rem; /* moved to the right side */
+	right: 0.75rem;
+	/* moved to the right side */
 	left: auto;
 	z-index: 10;
 	padding: 0.35rem 0.85rem;
@@ -540,7 +545,8 @@
 .profile-review-card__excerpt {
 	display: -webkit-box;
 	line-clamp: 5;
-	-webkit-line-clamp: 5; /* show up to 5 lines */
+	-webkit-line-clamp: 5;
+	/* show up to 5 lines */
 	-webkit-box-orient: vertical;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -669,6 +675,7 @@
 	0% {
 		transform: translateX(-100%);
 	}
+
 	100% {
 		transform: translateX(100%);
 	}
@@ -724,7 +731,6 @@
 
 	.profile-review-card__status {
 		top: 0.5rem;
-		left: 0.5rem;
 		font-size: 0.75rem;
 		padding: 0.3rem 0.7rem;
 	}

@@ -328,45 +328,22 @@
 
             const formattedRating = formatRatingValue(effectiveRating);
             const ratingDisplay = formattedRating ? `${formattedRating}/10` : "Không xác định";
-            const fairVotesDisplay = Number.isFinite(detail?.fairVotes) ? detail.fairVotes.toString() : "0";
-            const unfairVotesDisplay = Number.isFinite(detail?.unfairVotes) ? detail.unfairVotes.toString() : "0";
-            const supportDisplay = typeof detail?.supportScoreLabel === "string" && detail.supportScoreLabel.length > 0
-                ? detail.supportScoreLabel
-                : "0";
+
+            // Điểm ủng hộ lấy từ review.CommunicationScore
+            const communicationScore = parseNumberOrNull(detail?.communicationScore);
+            const supportDisplay = Number.isFinite(communicationScore) ? communicationScore.toString() : "0";
+
             const createdAtDisplay = typeof detail?.createdAtText === "string" && detail.createdAtText.length > 0
                 ? detail.createdAtText
                 : "Không xác định";
-            const updatedAtDisplay = typeof detail?.updatedAtText === "string" && detail.updatedAtText.length > 0
-                ? detail.updatedAtText
-                : null;
 
-            const updatedMarkup = updatedAtDisplay
-                ? `
-                    <div class="your-review-card__meta-item">
-                        <span class="your-review-card__meta-label"><i class="bi bi-arrow-counterclockwise me-1"></i>Cập nhật</span>
-                        <span class="your-review-card__meta-value">${escapeHtml(updatedAtDisplay)}</span>
-                    </div>
-                `
-                : "";
-
-            // Hiển thị Công tâm, Không công tâm, Điểm ủng hộ khi:
-            // - Review type là TAG (0): Luôn hiển thị
-            // - Review type là FREEFORM (1): Chỉ hiển thị khi Status = Released (1)
-            const isReleased = detail?.status === REVIEW_STATUS.RELEASED;
-            const isTag = reviewType === REVIEW_TYPE.TAG;
+            // Ẩn Điểm ủng hộ nếu là FREEFORM (1) và đang PENDING (0)
             const isFreeform = reviewType === REVIEW_TYPE.FREEFORM;
-            const showVotingStats = isTag || (isFreeform && isReleased);
+            const isPending = detail?.status === REVIEW_STATUS.PENDING;
+            const showSupportScore = !(isFreeform && isPending);
 
-            const votingStatsMarkup = showVotingStats
+            const supportScoreMarkup = showSupportScore
                 ? `
-                    <div class="your-review-card__meta-item">
-                        <span class="your-review-card__meta-label"><i class="bi bi-hand-thumbs-up me-1"></i>Công tâm</span>
-                        <span class="your-review-card__meta-value">${escapeHtml(fairVotesDisplay)}</span>
-                    </div>
-                    <div class="your-review-card__meta-item">
-                        <span class="your-review-card__meta-label"><i class="bi bi-hand-thumbs-down me-1"></i>Không công tâm</span>
-                        <span class="your-review-card__meta-value">${escapeHtml(unfairVotesDisplay)}</span>
-                    </div>
                     <div class="your-review-card__meta-item">
                         <span class="your-review-card__meta-label"><i class="bi bi-activity me-1"></i>Điểm ủng hộ</span>
                         <span class="your-review-card__meta-value">${escapeHtml(supportDisplay)}</span>
@@ -380,12 +357,11 @@
                         <span class="your-review-card__meta-label"><i class="bi bi-star-fill me-1 text-warning"></i>Điểm đánh giá</span>
                         <span class="your-review-card__meta-value">${escapeHtml(ratingDisplay)}</span>
                     </div>
-                    ${votingStatsMarkup}
+                    ${supportScoreMarkup}
                     <div class="your-review-card__meta-item">
                         <span class="your-review-card__meta-label"><i class="bi bi-clock-history me-1"></i>Ngày tạo</span>
                         <span class="your-review-card__meta-value">${escapeHtml(createdAtDisplay)}</span>
                     </div>
-                    ${updatedMarkup}
                 </div>
             `;
         };
@@ -549,6 +525,7 @@
                 statusBadgeClass: getStatusBadgeClass(review.status),
                 createdAtText: formatDateTime(review.createdOnUtc),
                 updatedAtText: review.updatedOnUtc ? formatDateTime(review.updatedOnUtc) : null,
+                communicationScore: supportScoreValue !== null ? supportScoreValue : null,
                 supportScoreLabel: supportScoreValue !== null ? supportScoreValue : null,
                 fairVotes: fairVotesValue !== null ? fairVotesValue : null,
                 unfairVotes: unfairVotesValue !== null ? unfairVotesValue : null,

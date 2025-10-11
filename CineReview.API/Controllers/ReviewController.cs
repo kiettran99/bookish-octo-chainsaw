@@ -78,7 +78,7 @@ public class ReviewController : CommonController
     /// Approve a pending review (Admin endpoint - sets status to Released)
     /// </summary>
     [HttpPost("{reviewId}/approve")]
-    [Authorize]
+    [Authorize(ERoles.Administrator)]
     public async Task<IActionResult> ApproveReview(int reviewId)
     {
         var response = await _reviewService.ApproveReviewAsync(reviewId);
@@ -111,9 +111,10 @@ public class ReviewController : CommonController
     /// Get reviews with optional filters
     /// </summary>
     [HttpGet]
+    [Authorize(ERoles.Administrator)]
     public async Task<IActionResult> GetReviews([FromQuery] ReviewListRequestModel request)
     {
-        var response = await _reviewService.GetReviewsAsync(request);
+        var response = await _reviewService.GetAdminReviewsAsync(request);
 
         if (!response.IsSuccess)
         {
@@ -186,7 +187,7 @@ public class ReviewController : CommonController
             PageSize = pageSize
         };
 
-        var response = await _reviewService.GetReviewsAsync(request);
+        var response = await _reviewService.GetMyReviewsAsync(request);
 
         if (!response.IsSuccess)
         {
@@ -217,7 +218,7 @@ public class ReviewController : CommonController
             PageSize = 10
         };
 
-        var response = await _reviewService.GetReviewsAsync(request);
+        var response = await _reviewService.GetMyReviewsAsync(request);
 
         if (!response.IsSuccess)
         {

@@ -295,6 +295,113 @@ public class ReviewService : IReviewService
             {
                 query = query.Where(r => r.Status == request.Status.Value);
             }
+            else
+            {
+                // By default, don't show deleted reviews
+                query = query.Where(r => r.Status != ReviewStatus.Deleted);
+
+                // Also filter out Normal (Freeform) reviews that are Pending
+                // Tag reviews can be shown even if Pending
+                query = query.Where(r =>
+                    r.Type == ReviewType.Tag ||
+                    (r.Type == ReviewType.Normal && r.Status == ReviewStatus.Released));
+            }
+
+            // Filter by ReviewType
+            if (request.Type.HasValue)
+            {
+                query = query.Where(r => r.Type == request.Type.Value);
+            }
+
+            // Filter by date range
+            if (request.DateFrom.HasValue)
+            {
+                query = query.Where(r => r.CreatedOnUtc >= request.DateFrom.Value);
+            }
+
+            if (request.DateTo.HasValue)
+            {
+                // Add one day to include the entire end date
+                var dateTo = request.DateTo.Value.Date.AddDays(1);
+                query = query.Where(r => r.CreatedOnUtc < dateTo);
+            }
+
+            // Filter by Email - need to join with User table
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                var userQuery = _unitOfWork.Repository<User>().GetQueryable()
+                    .Where(u => u.Email.Contains(request.Email));
+                query = query.Where(r => userQuery.Any(u => u.Id == r.UserId));
+            }
+
+            var page = request.Page < 1 ? 1 : request.Page;
+            var pageSize = request.PageSize < 1 ? 10 : request.PageSize;
+
+            var totalCount = await query.CountAsync();
+
+            var reviews = await query
+                .OrderByDescending(r => r.CreatedOnUtc)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(r => new
+                {
+                    Review = r,
+                    User = _unitOfWork.Repository<User>().GetQueryable().FirstOrDefault(u => u.Id == r.UserId)
+                })
+                .ToListAsync();
+
+            var response = reviews.Select(r => new ReviewResponseModel
+            {
+                Id = r.Review.Id,
+                UserId = r.Review.UserId,
+                UserName = r.User?.UserName,
+                UserFullName = r.User?.FullName,
+                UserAvatar = r.User?.Avatar,
+                UserCommunicationScore = r.User?.CommunicationScore ?? 0,
+                TmdbMovieId = r.Review.TmdbMovieId,
+                Status = r.Review.Status,
+                CommunicationScore = r.Review.CommunicationScore,
+                Type = r.Review.Type,
+                DescriptionTag = r.Review.Type == ReviewType.Tag && !string.IsNullOrEmpty(r.Review.DescriptionTag)
+                    ? JsonSerializer.Deserialize<object>(r.Review.DescriptionTag)
+                    : null,
+                Description = r.Review.Description,
+                Rating = r.Review.Rating,
+                RejectReason = r.Review.RejectReason,
+                CreatedOnUtc = r.Review.CreatedOnUtc,
+                UpdatedOnUtc = r.Review.UpdatedOnUtc
+            }).ToList();
+
+            var pagedResult = new PagedResult<ReviewResponseModel>(response, page, pageSize, totalCount);
+
+            return new ServiceResponse<PagedResult<ReviewResponseModel>>(pagedResult);
+        }
+        catch (Exception ex)
+        {
+            return new ServiceResponse<PagedResult<ReviewResponseModel>>(ex.Message);
+        }
+    }
+
+    public async Task<ServiceResponse<PagedResult<ReviewResponseModel>>> GetAdminReviewsAsync(ReviewListRequestModel request)
+    {
+        try
+        {
+            var query = _unitOfWork.Repository<Review>().GetQueryable();
+
+            if (request.TmdbMovieId.HasValue)
+            {
+                query = query.Where(r => r.TmdbMovieId == request.TmdbMovieId.Value);
+            }
+
+            if (request.UserId.HasValue)
+            {
+                query = query.Where(r => r.UserId == request.UserId.Value);
+            }
+
+            if (request.Status.HasValue)
+            {
+                query = query.Where(r => r.Status == request.Status.Value);
+            }
 
             // Filter by ReviewType
             if (request.Type.HasValue)
@@ -487,6 +594,92 @@ public class ReviewService : IReviewService
         catch (Exception ex)
         {
             return new ServiceResponse<BatchRatingsResponseModel>(ex.Message);
+        }
+    }
+
+    public async Task<ServiceResponse<PagedResult<ReviewResponseModel>>> GetMyReviewsAsync(ReviewListRequestModel request)
+    {
+        try
+        {
+            var query = _unitOfWork.Repository<Review>().GetQueryable();
+
+            if (request.UserId.HasValue)
+            {
+                query = query.Where(r => r.UserId == request.UserId.Value);
+            }
+
+            if (request.TmdbMovieId.HasValue)
+            {
+                query = query.Where(r => r.TmdbMovieId == request.TmdbMovieId.Value);
+            }
+
+            if (request.Status.HasValue)
+            {
+                query = query.Where(r => r.Status == request.Status.Value);
+            }
+            // KHÔNG filter Deleted/Pending mặc định ở đây!
+
+            if (request.Type.HasValue)
+            {
+                query = query.Where(r => r.Type == request.Type.Value);
+            }
+
+            if (request.DateFrom.HasValue)
+            {
+                query = query.Where(r => r.CreatedOnUtc >= request.DateFrom.Value);
+            }
+
+            if (request.DateTo.HasValue)
+            {
+                var dateTo = request.DateTo.Value.Date.AddDays(1);
+                query = query.Where(r => r.CreatedOnUtc < dateTo);
+            }
+
+            var page = request.Page < 1 ? 1 : request.Page;
+            var pageSize = request.PageSize < 1 ? 10 : request.PageSize;
+
+            var totalCount = await query.CountAsync();
+
+            var reviews = await query
+                .OrderByDescending(r => r.CreatedOnUtc)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(r => new
+                {
+                    Review = r,
+                    User = _unitOfWork.Repository<User>().GetQueryable().FirstOrDefault(u => u.Id == r.UserId)
+                })
+                .ToListAsync();
+
+            var response = reviews.Select(r => new ReviewResponseModel
+            {
+                Id = r.Review.Id,
+                UserId = r.Review.UserId,
+                UserName = r.User?.UserName,
+                UserFullName = r.User?.FullName,
+                UserAvatar = r.User?.Avatar,
+                UserCommunicationScore = r.User?.CommunicationScore ?? 0,
+                TmdbMovieId = r.Review.TmdbMovieId,
+                Status = r.Review.Status,
+                CommunicationScore = r.Review.CommunicationScore,
+                Type = r.Review.Type,
+                DescriptionTag = r.Review.Type == ReviewType.Tag && !string.IsNullOrEmpty(r.Review.DescriptionTag)
+                    ? System.Text.Json.JsonSerializer.Deserialize<object>(r.Review.DescriptionTag)
+                    : null,
+                Description = r.Review.Description,
+                Rating = r.Review.Rating,
+                RejectReason = r.Review.RejectReason,
+                CreatedOnUtc = r.Review.CreatedOnUtc,
+                UpdatedOnUtc = r.Review.UpdatedOnUtc
+            }).ToList();
+
+            var pagedResult = new PagedResult<ReviewResponseModel>(response, page, pageSize, totalCount);
+
+            return new ServiceResponse<PagedResult<ReviewResponseModel>>(pagedResult);
+        }
+        catch (Exception ex)
+        {
+            return new ServiceResponse<PagedResult<ReviewResponseModel>>(ex.Message);
         }
     }
 }
