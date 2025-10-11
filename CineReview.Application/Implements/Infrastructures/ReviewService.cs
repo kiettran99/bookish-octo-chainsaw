@@ -27,9 +27,9 @@ public class ReviewService : IReviewService
         try
         {
             // Validate rating
-            if (request.Rating < 1 || request.Rating > 10)
+            if (request.Rating < 1.0 || request.Rating > 10.0)
             {
-                return new ServiceResponse<ReviewResponseModel>("Rating must be between 1 and 10");
+                return new ServiceResponse<ReviewResponseModel>("Rating must be between 1.0 and 10.0");
             }
 
             // Validate content based on type
@@ -74,7 +74,7 @@ public class ReviewService : IReviewService
             await _unitOfWork.SaveChangesAsync();
 
             var response = await GetReviewByIdAsync(review.Id);
-               return response;
+            return response;
         }
         catch (Exception ex)
         {
@@ -82,27 +82,22 @@ public class ReviewService : IReviewService
         }
     }
 
-    public async Task<ServiceResponse<ReviewResponseModel>> UpdateReviewAsync(UpdateReviewRequestModel request, int userId)
+    public async Task<ServiceResponse<ReviewResponseModel>> UpdateReviewAsync(UpdateReviewRequestModel request)
     {
         try
         {
             var review = await _unitOfWork.Repository<Review>().GetQueryable()
-                .FirstOrDefaultAsync(r => r.Id == request.ReviewId && r.UserId == userId);
+                .FirstOrDefaultAsync(r => r.Id == request.ReviewId);
 
             if (review == null)
             {
-                return new ServiceResponse<ReviewResponseModel>("Review not found or you don't have permission to update");
-            }
-
-            if (review.Status == ReviewStatus.Deleted)
-            {
-                return new ServiceResponse<ReviewResponseModel>("Cannot update deleted review");
+                return new ServiceResponse<ReviewResponseModel>("Review not found");
             }
 
             // Validate rating
-            if (request.Rating < 1 || request.Rating > 10)
+            if (request.Rating < 1.0 || request.Rating > 10.0)
             {
-                return new ServiceResponse<ReviewResponseModel>("Rating must be between 1 and 10");
+                return new ServiceResponse<ReviewResponseModel>("Rating must be between 1.0 and 10.0");
             }
 
             // Validate content based on type
@@ -116,10 +111,11 @@ public class ReviewService : IReviewService
                 return new ServiceResponse<ReviewResponseModel>("Normal review must have description");
             }
 
+            // Check for duplicate type if type is being changed
             if (review.Type != request.Type)
             {
                 var duplicateTypeExists = await _unitOfWork.Repository<Review>().GetQueryable()
-                    .AnyAsync(r => r.UserId == userId
+                    .AnyAsync(r => r.UserId == review.UserId
                                    && r.TmdbMovieId == review.TmdbMovieId
                                    && r.Id != review.Id
                                    && r.Status != ReviewStatus.Deleted
@@ -127,14 +123,28 @@ public class ReviewService : IReviewService
 
                 if (duplicateTypeExists)
                 {
-                    return new ServiceResponse<ReviewResponseModel>("You have already submitted this type of review for this movie");
+                    return new ServiceResponse<ReviewResponseModel>("This user has already submitted this type of review for this movie");
                 }
             }
 
+            // Update fields
             review.Type = request.Type;
             review.DescriptionTag = request.Type == ReviewType.Tag ? JsonSerializer.Serialize(request.DescriptionTag) : null;
             review.Description = request.Type == ReviewType.Normal ? request.Description : null;
             review.Rating = request.Rating;
+
+            // Admin can update status and provide reject reason
+            if (request.Status.HasValue)
+            {
+                review.Status = request.Status.Value;
+
+                // If setting to Deleted, save reject reason
+                if (request.Status.Value == ReviewStatus.Deleted && !string.IsNullOrWhiteSpace(request.RejectReason))
+                {
+                    review.RejectReason = request.RejectReason;
+                }
+            }
+
             review.UpdatedOnUtc = DateTime.UtcNow;
 
             _unitOfWork.Repository<Review>().Update(review);
@@ -149,19 +159,25 @@ public class ReviewService : IReviewService
         }
     }
 
-    public async Task<ServiceResponse<bool>> DeleteReviewAsync(int reviewId, int userId)
+    public async Task<ServiceResponse<bool>> DeleteReviewAsync(int reviewId, string? rejectReason)
     {
         try
         {
             var review = await _unitOfWork.Repository<Review>().GetQueryable()
-                .FirstOrDefaultAsync(r => r.Id == reviewId && r.UserId == userId);
+                .FirstOrDefaultAsync(r => r.Id == reviewId);
 
             if (review == null)
             {
-                return new ServiceResponse<bool>("Review not found or you don't have permission to delete");
+                return new ServiceResponse<bool>("Review not found");
+            }
+
+            if (review.Status == ReviewStatus.Deleted)
+            {
+                return new ServiceResponse<bool>("Review is already deleted");
             }
 
             review.Status = ReviewStatus.Deleted;
+            review.RejectReason = rejectReason;
             review.UpdatedOnUtc = DateTime.UtcNow;
 
             _unitOfWork.Repository<Review>().Update(review);
@@ -246,6 +262,7 @@ public class ReviewService : IReviewService
                     : null,
                 Description = review.Review.Description,
                 Rating = review.Review.Rating,
+                RejectReason = review.Review.RejectReason,
                 CreatedOnUtc = review.Review.CreatedOnUtc,
                 UpdatedOnUtc = review.Review.UpdatedOnUtc
             };
@@ -282,11 +299,11 @@ public class ReviewService : IReviewService
             {
                 // By default, don't show deleted reviews
                 query = query.Where(r => r.Status != ReviewStatus.Deleted);
-                
+
                 // Also filter out Normal (Freeform) reviews that are Pending
                 // Tag reviews can be shown even if Pending
-                query = query.Where(r => 
-                    r.Type == ReviewType.Tag || 
+                query = query.Where(r =>
+                    r.Type == ReviewType.Tag ||
                     (r.Type == ReviewType.Normal && r.Status == ReviewStatus.Released));
             }
 
@@ -350,6 +367,7 @@ public class ReviewService : IReviewService
                     : null,
                 Description = r.Review.Description,
                 Rating = r.Review.Rating,
+                RejectReason = r.Review.RejectReason,
                 CreatedOnUtc = r.Review.CreatedOnUtc,
                 UpdatedOnUtc = r.Review.UpdatedOnUtc
             }).ToList();
@@ -410,9 +428,9 @@ public class ReviewService : IReviewService
 
             // Enqueue Hangfire background job to update communication score
             BackgroundJob.Enqueue(() => _communicationScoreService.UpdateCommunicationScoreAsync(
-                review.UserId, 
-                request.ReviewId, 
-                previousRatingType, 
+                review.UserId,
+                request.ReviewId,
+                previousRatingType,
                 (int)request.RatingType));
 
             return new ServiceResponse<bool>(true);
@@ -430,7 +448,7 @@ public class ReviewService : IReviewService
             // This method is deprecated and kept only for backward compatibility
             // Communication scores are now updated via Hangfire background jobs
             // when users vote on reviews (Fair/Unfair)
-            
+
             var review = await _unitOfWork.Repository<Review>().GetQueryable()
                 .FirstOrDefaultAsync(r => r.Id == reviewId);
 

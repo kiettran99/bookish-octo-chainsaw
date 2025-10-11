@@ -1,6 +1,7 @@
 using CineReview.API.Attributes;
 using CineReview.Application.Interfaces.Infrastructures;
 using CineReview.Domain.Models.ReviewModels;
+using Common.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CineReview.API.Controllers;
@@ -40,19 +41,13 @@ public class ReviewController : CommonController
     }
 
     /// <summary>
-    /// Update an existing review
+    /// Update an existing review (Admin only)
     /// </summary>
     [HttpPut]
-    [Authorize]
+    [Authorize(ERoles.Administrator)]
     public async Task<IActionResult> UpdateReview([FromBody] UpdateReviewRequestModel request)
     {
-        var userId = GetUserIdByToken();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
-
-        var response = await _reviewService.UpdateReviewAsync(request, userId.Value);
+        var response = await _reviewService.UpdateReviewAsync(request);
 
         if (!response.IsSuccess)
         {
@@ -63,19 +58,13 @@ public class ReviewController : CommonController
     }
 
     /// <summary>
-    /// Delete a review (soft delete - sets status to Deleted)
+    /// Delete a review (Admin only - soft delete, sets status to Deleted)
     /// </summary>
     [HttpDelete("{reviewId}")]
-    [Authorize]
-    public async Task<IActionResult> DeleteReview(int reviewId)
+    [Authorize(ERoles.Administrator)]
+    public async Task<IActionResult> DeleteReview(int reviewId, [FromQuery] string? rejectReason = null)
     {
-        var userId = GetUserIdByToken();
-        if (!userId.HasValue)
-        {
-            return Unauthorized();
-        }
-
-        var response = await _reviewService.DeleteReviewAsync(reviewId, userId.Value);
+        var response = await _reviewService.DeleteReviewAsync(reviewId, rejectReason);
 
         if (!response.IsSuccess)
         {

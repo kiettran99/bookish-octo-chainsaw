@@ -9,7 +9,7 @@ public class CreateReviewRequestModel
     public ReviewType Type { get; set; }
     public object? DescriptionTag { get; set; } // Can be List<string> or List<TagRatingItem> or any JSON structure
     public string? Description { get; set; }
-    public int Rating { get; set; } // 1-10 scale
+    public double Rating { get; set; } // 1-10 scale (supports decimal values)
 }
 
 public class UpdateReviewRequestModel
@@ -18,7 +18,9 @@ public class UpdateReviewRequestModel
     public ReviewType Type { get; set; }
     public object? DescriptionTag { get; set; } // Can be List<string> or List<TagRatingItem> or any JSON structure
     public string? Description { get; set; }
-    public int Rating { get; set; }
+    public double Rating { get; set; }
+    public ReviewStatus? Status { get; set; } // Admin can update status
+    public string? RejectReason { get; set; } // Admin provides reason when rejecting (setting to Deleted)
 }
 
 public class TagRatingItem
@@ -48,7 +50,8 @@ public class ReviewResponseModel
     public ReviewType Type { get; set; }
     public object? DescriptionTag { get; set; } // Can be List<string> or List<TagRatingItem> or any JSON structure
     public string? Description { get; set; }
-    public int Rating { get; set; }
+    public double Rating { get; set; }
+    public string? RejectReason { get; set; }
     public DateTime CreatedOnUtc { get; set; }
     public DateTime? UpdatedOnUtc { get; set; }
 }

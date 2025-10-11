@@ -87,8 +87,8 @@ export function ReviewDetailDialog({ open, review, onClose }: ReviewDetailDialog
                 label={review.type === REVIEW_TYPE.Tag ? 'Tag-based review' : 'Standard review'} 
                 color={review.type === REVIEW_TYPE.Tag ? 'info' : 'default'}
               />
-              <Chip label={`Rating ${review.rating}/10`} color="primary" />
-              <Chip label={`Comm score ${review.communicationScore.toFixed(2)}`} />
+              <Chip label={`Rating: ${review.rating}/10`} color="primary" />
+              <Chip label={`Comm Score: ${review.communicationScore.toFixed(2)}`} />
             </Stack>
 
             {review.type === REVIEW_TYPE.Normal && (
@@ -161,6 +161,25 @@ export function ReviewDetailDialog({ open, review, onClose }: ReviewDetailDialog
                     {JSON.stringify(review.descriptionTag, null, 2)}
                   </pre>
                 </Box>
+              </Box>
+            )}
+
+            {review.rejectReason && (
+              <Box
+                sx={{
+                  bgcolor: (theme) => theme.palette.error.main + '10',
+                  border: (theme) => `1px solid ${theme.palette.error.main}`,
+                  px: 2,
+                  py: 1.5,
+                  borderRadius: 2,
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight={600} color="error" gutterBottom>
+                  ⚠️ Reject Reason
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {review.rejectReason}
+                </Typography>
               </Box>
             )}
 

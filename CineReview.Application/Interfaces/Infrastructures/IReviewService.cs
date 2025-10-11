@@ -6,8 +6,8 @@ namespace CineReview.Application.Interfaces.Infrastructures;
 public interface IReviewService
 {
     Task<ServiceResponse<ReviewResponseModel>> CreateReviewAsync(CreateReviewRequestModel request, int userId);
-    Task<ServiceResponse<ReviewResponseModel>> UpdateReviewAsync(UpdateReviewRequestModel request, int userId);
-    Task<ServiceResponse<bool>> DeleteReviewAsync(int reviewId, int userId);
+    Task<ServiceResponse<ReviewResponseModel>> UpdateReviewAsync(UpdateReviewRequestModel request);
+    Task<ServiceResponse<bool>> DeleteReviewAsync(int reviewId, string? rejectReason);
     Task<ServiceResponse<bool>> ApproveReviewAsync(int reviewId);
     Task<ServiceResponse<ReviewResponseModel>> GetReviewByIdAsync(int reviewId);
     Task<ServiceResponse<PagedResult<ReviewResponseModel>>> GetReviewsAsync(ReviewListRequestModel request);

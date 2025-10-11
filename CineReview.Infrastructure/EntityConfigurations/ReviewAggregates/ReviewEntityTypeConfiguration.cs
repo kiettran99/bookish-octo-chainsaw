@@ -16,7 +16,7 @@ public class ReviewEntityTypeConfiguration : IEntityTypeConfiguration<Review>
         builder.Property(x => x.Status).IsRequired();
         builder.Property(x => x.CommunicationScore).HasDefaultValue(0);
         builder.Property(x => x.Type).IsRequired();
-        builder.Property(x => x.Rating).IsRequired();
+        builder.Property(x => x.Rating).IsRequired().HasColumnType("REAL"); // SQLite REAL type for double
 
         // Indexes
         builder.HasIndex(x => x.UserId);

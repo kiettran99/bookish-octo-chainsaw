@@ -22,7 +22,10 @@ public class Review : Entity
     [Column(TypeName = "TEXT")]
     public string? Description { get; set; } // Manual content for normal reviews
 
-    public int Rating { get; set; } // 1-10 scale
+    public double Rating { get; set; } // 1-10 scale (supports decimal values)
+
+    [Column(TypeName = "TEXT")]
+    public string? RejectReason { get; set; } // Reason when admin sets status to Deleted
 
     // Navigation properties
     public virtual ICollection<UserRating> UserRatings { get; set; } = new List<UserRating>();

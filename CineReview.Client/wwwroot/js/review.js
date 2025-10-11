@@ -332,7 +332,7 @@
             const unfairVotesDisplay = Number.isFinite(detail?.unfairVotes) ? detail.unfairVotes.toString() : "0";
             const supportDisplay = typeof detail?.supportScoreLabel === "string" && detail.supportScoreLabel.length > 0
                 ? detail.supportScoreLabel
-                : "0.0%";
+                : "0";
             const createdAtDisplay = typeof detail?.createdAtText === "string" && detail.createdAtText.length > 0
                 ? detail.createdAtText
                 : "Không xác định";
@@ -549,7 +549,7 @@
                 statusBadgeClass: getStatusBadgeClass(review.status),
                 createdAtText: formatDateTime(review.createdOnUtc),
                 updatedAtText: review.updatedOnUtc ? formatDateTime(review.updatedOnUtc) : null,
-                supportScoreLabel: supportScoreValue !== null ? `${supportScoreValue.toFixed(1)}%` : null,
+                supportScoreLabel: supportScoreValue !== null ? supportScoreValue : null,
                 fairVotes: fairVotesValue !== null ? fairVotesValue : null,
                 unfairVotes: unfairVotesValue !== null ? unfairVotesValue : null,
                 description: typeof review.description === "string" ? review.description : "",
@@ -1066,7 +1066,7 @@
                 toggleElement(summaryFreeformText, false);
 
                 const avgRaw = tagRatingsArray.reduce((sum, item) => sum + item.rating, 0) / tagRatingsArray.length;
-                const avgRating = Math.round(avgRaw);
+                const avgRating = avgRaw; // Keep decimal for average
 
                 currentReviewData = {
                     tmdbMovieId: movieId,

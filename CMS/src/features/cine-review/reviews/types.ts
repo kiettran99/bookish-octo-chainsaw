@@ -36,6 +36,7 @@ export interface ReviewResponseModel {
   descriptionTag?: unknown
   description?: string | null
   rating: number
+  rejectReason?: string | null
   fairVotes: number
   unfairVotes: number
   createdOnUtc: string
